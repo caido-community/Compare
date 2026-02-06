@@ -1,36 +1,22 @@
-name: Validate
+name: CI
 
 on:
   push:
     branches:
-      - 'main'
-  workflow_call:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
 
 concurrency:
-  group: validate-${{ github.ref_name }}
+  group: ci-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
-  typecheck:
-    name: 'Typecheck'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install mise
-        uses: jdx/mise-action@v2
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Run typechecker
-        run: pnpm typecheck
-
   lint:
-    name: 'Lint'
+    name: "Lint"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -46,8 +32,25 @@ jobs:
       - name: Run linter
         run: pnpm lint
 
+  typecheck:
+    name: "Typecheck"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install mise
+        uses: jdx/mise-action@v2
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run typecheck
+        run: pnpm typecheck
+
   knip:
-    name: 'Knip'
+    name: "Knip"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -64,7 +67,7 @@ jobs:
         run: pnpm knip
 
   test:
-    name: 'Test'
+    name: "Test"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
