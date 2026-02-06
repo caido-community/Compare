@@ -31,12 +31,6 @@ const items = [
 ];
 </script>
 
-<script lang="ts">
-export default {
-  name: "CompareHeader",
-};
-</script>
-
 <template>
   <MenuBar breakpoint="320px">
     <template #start>

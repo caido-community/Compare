@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignoreDependencies": ["caido"],
+  "ignoreExportsUsedInFile": { "type": true, "interface": true },
+  "ignoreIssues": {
+    "**/types.ts": ["types"]
+  },
+  "workspaces": {
+    ".": {
+      "entry": ["caido.config.ts"]
+    },
+    "packages/backend": {
+      "project": ["src/**/*.ts"]
+    },
+    "packages/frontend": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts", "src/**/*.vue"]
+    }
+  }
+}

@@ -20,6 +20,8 @@ const sections = [
 
 const activeSection = ref("what-is-compare");
 
+const contentRef = ref<HTMLElement>();
+
 const scrollToSection = (id: string) => {
   const element = document.getElementById(id);
   if (element && contentRef.value) {
@@ -29,8 +31,6 @@ const scrollToSection = (id: string) => {
     });
   }
 };
-
-const contentRef = ref<HTMLElement>();
 
 const handleScroll = () => {
   if (contentRef.value === undefined) return;
@@ -58,12 +58,6 @@ onUnmounted(() => {
 
 const isSectionActive = (sectionId: string) => {
   return activeSection.value === sectionId;
-};
-</script>
-
-<script lang="ts">
-export default {
-  name: "DocumentationTab",
 };
 </script>
 
@@ -255,16 +249,76 @@ export default {
                     differences.
                   </p>
                 </div>
+
+                <div class="border border-surface-700 rounded p-4">
+                  <h3 class="text-lg font-semibold mb-2 text-amber-400">
+                    Line-Level Comparison
+                  </h3>
+                  <p class="text-surface-300 leading-relaxed mb-3">
+                    Compares text line by line. Ideal for config files, scripts,
+                    and HTTP bodies where changes are often whole-line.
+                  </p>
+                  <p class="text-surface-300 text-sm">
+                    <strong>Use when:</strong> Comparing multi-line content
+                    where each line is a logical unit.
+                  </p>
+                </div>
+
+                <div class="border border-surface-700 rounded p-4">
+                  <h3 class="text-lg font-semibold mb-2 text-surface-300">
+                    Comparison Options
+                  </h3>
+                  <p class="text-surface-300 leading-relaxed mb-3">
+                    <strong>Ignore whitespace:</strong> Normalizes spaces and
+                    tabs within lines while preserving line breaks. Useful for
+                    comparing formatted text where indentation varies.
+                  </p>
+                  <p class="text-surface-300 leading-relaxed">
+                    <strong>Ignore case:</strong> Performs case-insensitive
+                    comparison. Perfect for comparing text where capitalization
+                    differences don't matter.
+                  </p>
+                </div>
               </div>
 
               <div
                 class="mt-6 bg-surface-800 border border-surface-700 rounded p-4"
               >
-                <p class="text-surface-300 text-sm">
+                <p class="text-surface-300 text-sm mb-3">
                   <i class="fas fa-palette text-blue-400 mr-2"></i>
                   <strong>Color coding:</strong>
-                  <span class="text-green-400 ml-2">Green = Added</span>
-                  <span class="text-red-400 ml-4">Red = Deleted</span>
+                  <span
+                    class="text-green-100 ml-2 bg-green-700/50 px-2 py-0.5 rounded-sm"
+                    >Green = Added</span
+                  >
+                  <span
+                    class="text-red-100 ml-2 bg-red-700/50 px-2 py-0.5 rounded-sm"
+                    >Red = Deleted</span
+                  >
+                  <span
+                    class="text-orange-100 ml-2 bg-orange-700/50 px-2 py-0.5 rounded-sm"
+                    >Orange = Modified</span
+                  >
+                </p>
+                <p class="text-surface-300 text-sm">
+                  <i class="fas fa-tags text-blue-400 mr-2"></i>
+                  <strong>Item types:</strong>
+                  <span
+                    class="ml-2 bg-pink-600 text-white px-2 py-0.5 rounded-sm text-xs"
+                    >clipboard</span
+                  >
+                  <span
+                    class="ml-2 bg-blue-600 text-white px-2 py-0.5 rounded-sm text-xs"
+                    >file</span
+                  >
+                  <span
+                    class="ml-2 bg-purple-600 text-white px-2 py-0.5 rounded-sm text-xs"
+                    >request</span
+                  >
+                  <span
+                    class="ml-2 bg-teal-600 text-white px-2 py-0.5 rounded-sm text-xs"
+                    >response</span
+                  >
                 </p>
               </div>
             </section>

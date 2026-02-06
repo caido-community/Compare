@@ -31,8 +31,10 @@ Built specifically for penetration testers and security researchers, Compare int
 
 - **Word-Level Comparison:** Intelligent word-boundary detection for text content analysis
 - **Byte-Level Comparison:** Character-by-character analysis for precise difference detection
-- **Visual Highlighting:** Color-coded differences (Added, Deleted, Modified, Unchanged)
+- **Line-Level Comparison:** Line-by-line comparison ideal for structured content
+- **Visual Highlighting:** Color-coded differences with full-width backgrounds (Added, Deleted, Modified, Unchanged)
 - **Side-by-Side View:** Professional layout with synchronized scrolling option
+- **Comparison Options:** Ignore whitespace and ignore case for flexible comparison
 </details>
 
 <details>
@@ -71,9 +73,10 @@ Built specifically for penetration testers and security researchers, Compare int
 <br>
 
 - **Modern Interface:** Clean, intuitive design matching Caido's theme
-- **Responsive Layout:** Optimized for different screen sizes
+- **Type-Specific Badges:** Color-coded item types (clipboard, file, request, response)
+- **Responsive Layout:** Optimized for different screen sizes with adaptive modal sizing
 - **Detailed Statistics:** Comprehensive difference counts and analysis
-- **Professional Modal:** Dedicated comparison view with advanced controls
+- **Professional Modal:** Dedicated comparison view with advanced controls and proper minimum dimensions
 </details>
 
 ## Installation

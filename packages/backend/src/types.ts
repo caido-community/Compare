@@ -8,7 +8,7 @@ export interface CompareItem {
   timestamp: Date;
   type: "request" | "response" | "file" | "clipboard";
   source?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ComparisonRequest {
@@ -39,6 +39,35 @@ export interface ComparisonDifference {
   content: string;
   lineNumber?: number;
 }
+
+export type ComparisonDiff = {
+  type: "added" | "deleted" | "modified" | "unchanged";
+  content: string;
+  position: number;
+  length: number;
+  lineNumber?: number;
+};
+
+export type ComparisonSummary = {
+  unchanged: number;
+  modified: number;
+  added: number;
+  deleted: number;
+};
+
+export type ComparisonViewResult = {
+  id1: number;
+  id2: number;
+  source1: string;
+  source2: string;
+  length1: number;
+  length2: number;
+  diffs1: ComparisonDiff[];
+  diffs2: ComparisonDiff[];
+  type: "words" | "bytes" | "lines";
+  timestamp: Date;
+  summary: ComparisonSummary;
+};
 
 export interface CompareSettings {
   ignoreWhitespace: boolean;

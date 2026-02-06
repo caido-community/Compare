@@ -1,9 +1,5 @@
 import { type CompareItem } from "../types";
 
-/**
- * In-memory store for Compare items
- * This provides fast access while files provide persistence
- */
 export class CompareStore {
   private static instance: CompareStore;
 
@@ -16,7 +12,7 @@ export class CompareStore {
   }
 
   static get(): CompareStore {
-    if (!CompareStore.instance) {
+    if (CompareStore.instance === undefined) {
       CompareStore.instance = new CompareStore();
     }
     return CompareStore.instance;
@@ -64,7 +60,6 @@ export class CompareStore {
     this.panel2Items.clear();
   }
 
-  // Generic panel operations
   getPanelItems(panelNumber: 1 | 2): CompareItem[] {
     return panelNumber === 1 ? this.getPanel1Items() : this.getPanel2Items();
   }
@@ -95,7 +90,6 @@ export class CompareStore {
     }
   }
 
-  // Statistics
   getStats() {
     return {
       panel1Count: this.panel1Items.size,
@@ -104,7 +98,6 @@ export class CompareStore {
     };
   }
 
-  // Bulk operations for loading from storage
   loadPanel1Items(items: CompareItem[]): void {
     this.panel1Items.clear();
     items.forEach((item) => this.panel1Items.set(item.id, item));

@@ -15,7 +15,6 @@ export async function ensureCompareDirectories(sdk: SDK): Promise<boolean> {
     await mkdir(panel1Dir, { recursive: true });
     await mkdir(panel2Dir, { recursive: true });
 
-    sdk.console.log("Compare directories initialized successfully");
     return true;
   } catch (error) {
     sdk.console.error(
@@ -25,27 +24,23 @@ export async function ensureCompareDirectories(sdk: SDK): Promise<boolean> {
   }
 }
 
-export function getCompareDataDir(sdk: SDK): string {
+function getCompareDataDir(sdk: SDK): string {
   return path.join(sdk.meta.path(), "compare-data");
 }
 
-export function getPanel1Dir(sdk: SDK): string {
+function getPanel1Dir(sdk: SDK): string {
   return path.join(getCompareDataDir(sdk), "panel1");
 }
 
-export function getPanel2Dir(sdk: SDK): string {
+function getPanel2Dir(sdk: SDK): string {
   return path.join(getCompareDataDir(sdk), "panel2");
 }
 
-export function getPanelDir(sdk: SDK, panelNumber: 1 | 2): string {
+function getPanelDir(sdk: SDK, panelNumber: 1 | 2): string {
   return panelNumber === 1 ? getPanel1Dir(sdk) : getPanel2Dir(sdk);
 }
 
-export function getItemPath(
-  sdk: SDK,
-  panelNumber: 1 | 2,
-  itemId: number,
-): string {
+function getItemPath(sdk: SDK, panelNumber: 1 | 2, itemId: number): string {
   const panelDir = getPanelDir(sdk, panelNumber);
   return path.join(panelDir, `${itemId}.json`);
 }
@@ -64,9 +59,6 @@ export async function saveItemToFile(
     };
 
     await writeFile(itemPath, JSON.stringify(storageItem, null, 2));
-    sdk.console.log(
-      `Saved item ${item.id} to ${panelNumber === 1 ? "Original" : "Modified"} file`,
-    );
     return true;
   } catch (error) {
     sdk.console.error(
@@ -84,15 +76,9 @@ export async function deleteItemFile(
   try {
     const itemPath = getItemPath(sdk, panelNumber, itemId);
     await rm(itemPath);
-    sdk.console.log(
-      `Deleted item ${itemId} file from ${panelNumber === 1 ? "Original" : "Modified"}`,
-    );
     return true;
   } catch (error) {
-    if ((error as any).code === "ENOENT") {
-      sdk.console.log(
-        `Item ${itemId} file already didn't exist - considering deletion successful`,
-      );
+    if ((error as Error & { code?: string }).code === "ENOENT") {
       return true;
     }
     sdk.console.error(
@@ -102,7 +88,7 @@ export async function deleteItemFile(
   }
 }
 
-export async function loadItemsFromFiles(
+async function loadItemsFromFiles(
   sdk: SDK,
   panelNumber: 1 | 2,
 ): Promise<CompareItem[]> {
@@ -132,10 +118,6 @@ export async function loadItemsFromFiles(
         }
       }
     }
-
-    sdk.console.log(
-      `Loaded ${items.length} items from ${panelNumber === 1 ? "Original" : "Modified"} files`,
-    );
   } catch (error) {
     sdk.console.error(
       `Failed to load items from ${panelNumber === 1 ? "Original" : "Modified"}: ${(error as Error).message}`,
@@ -159,24 +141,18 @@ export async function clearPanelFiles(
         .filter((file) => file.endsWith(".json"))
         .map((file) => {
           const filePath = path.join(panelDir, file);
-          return rm(filePath).catch((error) => {
-            if (error.code !== "ENOENT") {
+          return rm(filePath).catch((err: unknown) => {
+            if ((err as Error & { code?: string }).code !== "ENOENT") {
               sdk.console.warn(
-                `Failed to delete file ${file}: ${(error as Error).message}`,
+                `Failed to delete file ${file}: ${(err as Error).message}`,
               );
             }
           });
         });
 
       await Promise.all(deletePromises);
-      sdk.console.log(
-        `Cleared ${files.filter((f) => f.endsWith(".json")).length} files from ${panelNumber === 1 ? "Original" : "Modified"}`,
-      );
     } catch (dirError) {
-      if ((dirError as any).code === "ENOENT") {
-        sdk.console.log(
-          `${panelNumber === 1 ? "Original" : "Modified"} directory doesn't exist - nothing to clear`,
-        );
+      if ((dirError as Error & { code?: string }).code === "ENOENT") {
         return true;
       }
       throw dirError;
