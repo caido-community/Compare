@@ -11,7 +11,7 @@ export default defineConfig({
   id,
   name: "Compare",
   description: "Side-by-side comparison of HTTP requests, responses, and files with visual difference highlighting",
-  version: "1.0.2",
+  version: "1.1.0",
   author: {
     name: "Amr Elsagaei",
     email: "info@amrelsagaei.com",

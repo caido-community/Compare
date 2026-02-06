@@ -418,7 +418,7 @@ const isSectionActive = (sectionId: string) => {
                 <div class="flex items-center justify-between mb-4">
                   <div>
                     <h3 class="text-xl font-bold">Compare</h3>
-                    <p class="text-sm text-surface-400">Version 1.0.2</p>
+                    <p class="text-sm text-surface-400">Version 1.1.0</p>
                   </div>
                 </div>
 
