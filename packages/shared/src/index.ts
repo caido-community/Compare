@@ -1,9 +1,9 @@
-import type { SDK } from "caido:plugin";
-
 export type {
   CompareItem,
+  CompareSettings,
   CompareStorageResult,
   ComparisonDiff,
+  ComparisonDifference,
   ComparisonRequest,
   ComparisonResult,
   ComparisonSummary,
@@ -12,6 +12,4 @@ export type {
   PanelDataResponse,
   Result,
   ValidationResult,
-} from "shared";
-
-export type CaidoBackendSDK = SDK;
+} from "./types";

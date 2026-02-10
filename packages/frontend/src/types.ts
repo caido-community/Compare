@@ -1,76 +1,34 @@
 import type { Caido } from "@caido/sdk-frontend";
+import type { API } from "backend";
 import type {
-  API,
+  CompareItem,
+  CompareStorageResult,
   ComparisonDiff,
   ComparisonRequest,
+  ComparisonResult,
   ComparisonSummary,
   ComparisonViewResult,
-} from "backend";
+  FileUploadResult,
+  PanelDataResponse,
+} from "shared";
 
 export type FrontendSDK = Caido<API, Record<string, never>>;
 
-export type { ComparisonDiff, ComparisonSummary, ComparisonViewResult };
+export type {
+  CompareItem,
+  CompareStorageResult,
+  ComparisonDiff,
+  ComparisonRequest,
+  ComparisonResult,
+  ComparisonSummary,
+  ComparisonViewResult,
+  FileUploadResult,
+  PanelDataResponse,
+};
 
 export type CompareOptions = {
   ignoreWhitespace?: boolean;
   ignoreCase?: boolean;
-};
-
-export type CompareItem = {
-  id: number;
-  length: number;
-  data: string;
-  preview: string;
-  timestamp: Date;
-  type: "request" | "response" | "file" | "clipboard";
-  source?: string;
-  metadata?: Record<string, unknown>;
-};
-
-export type ComparisonResult = {
-  type: "words" | "bytes" | "characters";
-  differences: ComparisonDifference[];
-  summary: {
-    added: number;
-    deleted: number;
-    modified: number;
-    total: number;
-  };
-};
-
-export type ComparisonDifference = {
-  type: "added" | "deleted" | "modified";
-  position: number;
-  length: number;
-  content: string;
-  lineNumber?: number;
-};
-
-export type CompareSettings = {
-  ignoreWhitespace: boolean;
-  ignoreCase: boolean;
-  showLineNumbers: boolean;
-  syncScroll: boolean;
-  maxItems: number;
-  autoSave: boolean;
-};
-
-export type CompareStorageResult<T> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-};
-
-export type PanelDataResponse = {
-  items: CompareItem[];
-  count: number;
-  lastUpdated: Date;
-};
-
-export type FileUploadResult = {
-  success: boolean;
-  item?: CompareItem;
-  error?: string;
 };
 
 export type UIState = {
@@ -91,8 +49,7 @@ export type CompareProps = Record<string, never>;
 
 export type CompareEmits = Record<string, never>;
 
-// API call types for better type safety
-export interface BackendAPI {
+export type BackendAPI = {
   saveItemToPanel(
     panelNumber: 1 | 2,
     data: string,
@@ -118,7 +75,7 @@ export interface BackendAPI {
   performComparison(request: ComparisonRequest): Promise<ComparisonResult>;
   getStorageStats(): Promise<CompareStorageResult<unknown>>;
   validateStorage(): Promise<CompareStorageResult<boolean>>;
-}
+};
 
 export type BackendResult<T> =
   | { kind: "Success"; value: T }

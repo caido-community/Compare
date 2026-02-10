@@ -6,6 +6,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "shared": "workspace:*"
+  },
   "devDependencies": {
     "@caido/sdk-backend": "^0.46.0"
   }

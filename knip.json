@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "ignoreDependencies": ["caido"],
+  "ignoreDependencies": ["caido", "prettier-linter-helpers"],
   "ignoreExportsUsedInFile": { "type": true, "interface": true },
   "ignoreIssues": {
     "**/types.ts": ["types"]

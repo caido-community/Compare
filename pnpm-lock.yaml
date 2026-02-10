@@ -29,6 +29,9 @@ importers:
       postcss-prefixwrap:
         specifier: 1.51.0
         version: 1.51.0(postcss@8.5.6)
+      prettier-linter-helpers:
+        specifier: ^1.0.0
+        version: 1.0.0
       tailwindcss:
         specifier: 3.4.13
         version: 3.4.13
@@ -40,6 +43,10 @@ importers:
         version: 5.5.4
 
   packages/backend:
+    dependencies:
+      shared:
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@caido/sdk-backend':
         specifier: ^0.46.0
@@ -50,12 +57,18 @@ importers:
       '@caido/primevue':
         specifier: 0.1.2
         version: 0.1.2
+      backend:
+        specifier: workspace:*
+        version: link:../backend
       diff:
         specifier: ^5.2.0
         version: 5.2.2
       primevue:
         specifier: 4.1.0
         version: 4.1.0(vue@3.4.37(typescript@5.5.4))
+      shared:
+        specifier: workspace:*
+        version: link:../shared
       vue:
         specifier: 3.4.37
         version: 3.4.37(typescript@5.5.4)
@@ -69,15 +82,18 @@ importers:
       '@codemirror/view':
         specifier: 6.28.1
         version: 6.28.1
-      backend:
-        specifier: workspace:*
-        version: link:../backend
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@25.2.1)
       vue-tsc:
         specifier: 2.0.29
         version: 2.0.29(typescript@5.5.4)
+
+  packages/shared:
+    devDependencies:
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
 
 packages:
 

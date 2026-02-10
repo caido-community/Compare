@@ -14,11 +14,11 @@ import type {
   UIState,
 } from "../types";
 
-import CompareControls from "@/components/CompareControls/Container.vue";
-import CompareHeader from "@/components/CompareHeader/Container.vue";
-import ComparePanel from "@/components/ComparePanel/Container.vue";
-import ComparisonModal from "@/components/ComparisonModal/Container.vue";
-import DocumentationTab from "@/components/DocumentationTab/Container.vue";
+import CompareControls from "@/components/CompareControls/index.ts";
+import CompareHeader from "@/components/CompareHeader/index.ts";
+import ComparePanel from "@/components/ComparePanel/index.ts";
+import ComparisonModal from "@/components/ComparisonModal/index.ts";
+import DocumentationTab from "@/components/DocumentationTab/index.ts";
 
 const sdk = useSDK();
 

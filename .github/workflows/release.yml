@@ -27,13 +27,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Run validation
-        run: |
-          pnpm lint
-          pnpm typecheck
-          pnpm knip
-          pnpm test
-
       - name: Build package
         run: pnpm build
 

@@ -106,6 +106,44 @@ describe("compareByLines", () => {
     const added = diffs2.filter((d: ComparisonDiff) => d.type === "added");
     expect(added.length).toBeGreaterThan(0);
   });
+
+  it("reports deleted line when one line is removed", () => {
+    const { diffs1 } = compareByLines("a\nb\nc\n", "a\nc\n");
+    const deleted = diffs1.filter((d: ComparisonDiff) => d.type === "deleted");
+    expect(deleted.length).toBeGreaterThan(0);
+  });
+
+  it("reports modified when a line changes", () => {
+    const { diffs1, diffs2 } = compareByLines("a\nb\n", "a\nx\n");
+    const mod1 = diffs1.filter(
+      (d: ComparisonDiff) => d.type === "modified" || d.type === "deleted",
+    );
+    const mod2 = diffs2.filter(
+      (d: ComparisonDiff) => d.type === "modified" || d.type === "added",
+    );
+    expect(mod1.length).toBeGreaterThan(0);
+    expect(mod2.length).toBeGreaterThan(0);
+  });
+
+  it("respects ignoreWhitespace option (per-line)", () => {
+    const { diffs1, diffs2 } = compareByLines("  a  \n", "a\n", {
+      ignoreWhitespace: true,
+    });
+    expect(diffs1).toHaveLength(1);
+    expect(diffs2).toHaveLength(1);
+    expect(diffs1[0]?.type).toBe("unchanged");
+    expect(diffs2[0]?.type).toBe("unchanged");
+  });
+
+  it("respects ignoreCase option", () => {
+    const { diffs1, diffs2 } = compareByLines("Line1\n", "LINE1\n", {
+      ignoreCase: true,
+    });
+    expect(diffs1).toHaveLength(1);
+    expect(diffs2).toHaveLength(1);
+    expect(diffs1[0]?.type).toBe("unchanged");
+    expect(diffs2[0]?.type).toBe("unchanged");
+  });
 });
 
 describe("compareByBytes", () => {

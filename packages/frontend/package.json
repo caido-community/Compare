@@ -9,15 +9,16 @@
   },
   "dependencies": {
     "@caido/primevue": "0.1.2",
+    "backend": "workspace:*",
     "diff": "^5.2.0",
     "primevue": "4.1.0",
+    "shared": "workspace:*",
     "vue": "3.4.37"
   },
   "devDependencies": {
     "@caido/sdk-backend": "^0.46.0",
     "@caido/sdk-frontend": "^0.46.0",
     "@codemirror/view": "6.28.1",
-    "backend": "workspace:*",
     "vitest": "^2.0.0",
     "vue-tsc": "2.0.29"
   }

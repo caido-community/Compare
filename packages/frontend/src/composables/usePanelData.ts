@@ -1,4 +1,4 @@
-import type { CompareItem, FrontendSDK, PanelDataResponse } from "@/types";
+import type { CompareItem, FrontendSDK } from "@/types";
 
 export function usePanelData(sdk: FrontendSDK) {
   async function loadPanelData(
@@ -6,7 +6,7 @@ export function usePanelData(sdk: FrontendSDK) {
   ): Promise<CompareItem[] | undefined> {
     const result = await sdk.backend.loadPanelData(panelNumber);
     if (result.success && result.data !== undefined) {
-      const data = result.data as PanelDataResponse;
+      const data = result.data;
       return data.items.map((item) => ({
         ...item,
         timestamp: new Date(item.timestamp),
