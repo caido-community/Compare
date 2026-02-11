@@ -17,207 +17,133 @@ const Commands = {
   sendResponseToModified: "compare.send-response-to-modified",
 } as const;
 
-// Context menu command handler for Original - REQUESTS ONLY
-const sendToOriginal = async (sdk: FrontendSDK, context: any) => {
-  try {
-    let request = context.request;
-    if (!request && context) {
-      request = context;
-    }
+type RequestContext = {
+  request?: {
+    raw?: string | { toText?: () => string };
+    host?: string;
+    path?: string;
+    id?: string;
+    port?: number;
+    isTls?: boolean;
+    query?: string;
+  };
+};
 
-    if (!request) {
+const sendToOriginal = async (sdk: FrontendSDK, context: RequestContext) => {
+  try {
+    const request = context.request ?? context;
+    if (request === undefined || request === null) {
       throw new Error("No request found in context");
     }
 
-    const requestInfo = {
-      method: "GET",
-      host: request.host || "unknown",
-      path: request.path || "/",
-      id: request.id || "unknown",
-      port: request.port || 80,
-      isTls: request.isTls || false,
-      query: request.query || "",
-      raw: request.raw || "",
-    };
+    const req = request as Record<string, unknown>;
+    const raw =
+      typeof req.raw === "string"
+        ? req.raw
+        : typeof (req.raw as { toText?: () => string })?.toText === "function"
+          ? (req.raw as { toText: () => string }).toText()
+          : "";
+    const host = typeof req.host === "string" ? req.host : "unknown";
+    const port = typeof req.port === "number" ? req.port : 80;
+    const isTls = req.isTls === true;
+    const targetUrl = `${isTls ? "https" : "http"}://${host}:${port}`;
 
-    if (request.raw && typeof request.raw === "string") {
-      const methodMatch = request.raw.match(/^([A-Z]+)\s+/);
-      if (methodMatch) {
-        requestInfo.method = methodMatch[1];
-      }
-    } else if (request.raw && request.raw.toText) {
-      try {
-        const rawText = request.raw.toText();
-        const methodMatch = rawText.match(/^([A-Z]+)\s+/);
-        if (methodMatch) {
-          requestInfo.method = methodMatch[1];
-        }
-      } catch (e) {
-        // Failed to extract method, use default
-      }
-    }
-
-    const targetUrl = `${requestInfo.isTls ? "https" : "http"}://${requestInfo.host}:${requestInfo.port}`;
-    const rawRequest = requestInfo.raw || "";
-
-    await (sdk.backend as any).addRequestToPanel(
-      1,
-      rawRequest,
-      targetUrl,
-      request,
-    );
-
-    // Navigate to Compare page
-    sdk.navigation.goTo("/compare");
+    await sdk.backend.addRequestToPanel(1, raw, targetUrl, request);
 
     window.dispatchEvent(
       new CustomEvent("compare-data-updated", { detail: { panel: 1 } }),
     );
 
-    try {
-      await sdk.window.showToast("Request sent to Original", {
-        variant: "success",
-        duration: 3000,
-      });
-    } catch (error) {
-      console.log("Request sent to Original");
-    }
+    sdk.window.showToast("Request sent to Original", {
+      variant: "success",
+      duration: 3000,
+    });
   } catch (error) {
-    console.error("[Compare] Failed to send request to Original:", error);
-
-    try {
-      await sdk.window.showToast(
-        `Failed to send request: ${error instanceof Error ? error.message : "Unknown error"}`,
-        {
-          variant: "error",
-          duration: 3000,
-        },
-      );
-    } catch (toastError) {
-      console.error(
-        `Failed to send request: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
+    sdk.window.showToast(
+      `Failed to send request: ${error instanceof Error ? error.message : "Unknown error"}`,
+      { variant: "error", duration: 3000 },
+    );
   }
 };
 
-// Context menu command handler for Modified - REQUESTS ONLY
-const sendToModified = async (sdk: FrontendSDK, context: any) => {
+const sendToModified = async (sdk: FrontendSDK, context: RequestContext) => {
   try {
-    let request = context.request;
-    if (!request && context) {
-      request = context;
-    }
-
-    if (!request) {
+    const request = context.request ?? context;
+    if (request === undefined || request === null) {
       throw new Error("No request found in context");
     }
 
-    const requestInfo = {
-      method: "GET",
-      host: request.host || "unknown",
-      path: request.path || "/",
-      id: request.id || "unknown",
-      port: request.port || 80,
-      isTls: request.isTls || false,
-      query: request.query || "",
-      raw: request.raw || "",
-    };
+    const req = request as Record<string, unknown>;
+    const raw =
+      typeof req.raw === "string"
+        ? req.raw
+        : typeof (req.raw as { toText?: () => string })?.toText === "function"
+          ? (req.raw as { toText: () => string }).toText()
+          : "";
+    const host = typeof req.host === "string" ? req.host : "unknown";
+    const port = typeof req.port === "number" ? req.port : 80;
+    const isTls = req.isTls === true;
+    const targetUrl = `${isTls ? "https" : "http"}://${host}:${port}`;
 
-    if (request.raw && typeof request.raw === "string") {
-      const methodMatch = request.raw.match(/^([A-Z]+)\s+/);
-      if (methodMatch) {
-        requestInfo.method = methodMatch[1];
-      }
-    } else if (request.raw && request.raw.toText) {
-      try {
-        const rawText = request.raw.toText();
-        const methodMatch = rawText.match(/^([A-Z]+)\s+/);
-        if (methodMatch) {
-          requestInfo.method = methodMatch[1];
-        }
-      } catch (e) {
-        // Failed to extract method, use default
-      }
-    }
-
-    const targetUrl = `${requestInfo.isTls ? "https" : "http"}://${requestInfo.host}:${requestInfo.port}`;
-    const rawRequest = requestInfo.raw || "";
-
-    await (sdk.backend as any).addRequestToPanel(
-      2,
-      rawRequest,
-      targetUrl,
-      request,
-    );
-
-    // Navigate to Compare page
-    sdk.navigation.goTo("/compare");
+    await sdk.backend.addRequestToPanel(2, raw, targetUrl, request);
 
     window.dispatchEvent(
       new CustomEvent("compare-data-updated", { detail: { panel: 2 } }),
     );
 
-    try {
-      await sdk.window.showToast("Request sent to Modified", {
-        variant: "success",
-        duration: 3000,
-      });
-    } catch (error) {
-      console.log("Request sent to Modified");
-    }
+    sdk.window.showToast("Request sent to Modified", {
+      variant: "success",
+      duration: 3000,
+    });
   } catch (error) {
-    console.error("[Compare] Failed to send request to Modified:", error);
-
-    try {
-      await sdk.window.showToast(
-        `Failed to send request: ${error instanceof Error ? error.message : "Unknown error"}`,
-        {
-          variant: "error",
-          duration: 3000,
-        },
-      );
-    } catch (toastError) {
-      console.error(
-        `Failed to send request: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
+    sdk.window.showToast(
+      `Failed to send request: ${error instanceof Error ? error.message : "Unknown error"}`,
+      { variant: "error", duration: 3000 },
+    );
   }
 };
 
 // Context menu command handler for request rows
-const sendRowsToOriginal = async (sdk: FrontendSDK, context: any) => {
-  try {
-    try {
-      await sdk.window.showToast(
-        "Processing selected requests for Original...",
-        {
-          variant: "info",
-          duration: 3000,
-        },
-      );
-    } catch (error) {
-      console.log("Processing selected requests for Original...");
-    }
+type RequestRowContext = { requests?: unknown[] };
 
-    if (!context || !context.requests || !context.requests.length) {
-      console.error("[Compare] No requests in RequestRowContext");
+const sendRowsToOriginal = async (
+  sdk: FrontendSDK,
+  context: RequestRowContext,
+) => {
+  try {
+    const requests = context.requests;
+    if (
+      requests === undefined ||
+      !Array.isArray(requests) ||
+      requests.length === 0
+    ) {
       throw new Error("No requests selected");
     }
 
-    const requests = context.requests.slice(0, 25); // Limit to 25 requests for safety
-    const requestsToProcess = [];
+    const requestsSlice = requests.slice(0, 25);
+    const requestsToProcess: Array<{
+      rawRequest: string;
+      targetUrl: string;
+      originalRequest: unknown;
+    }> = [];
 
-    for (const request of requests) {
+    for (const request of requestsSlice) {
       try {
-        if (!request || !request.id) {
-          console.error("[Compare] Invalid request in RequestRowContext");
+        const req = request as Record<string, unknown>;
+        if (req === undefined || req.id === undefined) {
           continue;
         }
 
-        const fullRequest = await sdk.graphql.request({ id: request.id });
-        if (!fullRequest.request?.raw) {
-          console.error(`[Compare] No raw request data for ID: ${request.id}`);
+        let requestId: string;
+        if (typeof req.id === "string") {
+          requestId = req.id;
+        } else if (typeof req.id === "number") {
+          requestId = String(req.id);
+        } else {
+          continue;
+        }
+        const fullRequest = await sdk.graphql.request({ id: requestId });
+        if (fullRequest.request?.raw === undefined) {
           continue;
         }
 
@@ -229,22 +155,22 @@ const sendRowsToOriginal = async (sdk: FrontendSDK, context: any) => {
           typeof fullRequest.request.raw === "object" &&
           "toText" in fullRequest.request.raw
         ) {
-          rawRequest = (fullRequest.request.raw as any).toText();
+          rawRequest = (
+            fullRequest.request.raw as { toText: () => string }
+          ).toText();
         } else {
           rawRequest = String(fullRequest.request.raw);
         }
 
-        if (!rawRequest || rawRequest.trim() === "") {
-          console.error(
-            `[Compare] Empty raw request data for ID: ${request.id}`,
-          );
+        if (rawRequest.trim() === "") {
           continue;
         }
 
-        const host = request.host || fullRequest.request.host || "unknown";
-        const port = request.port || fullRequest.request.port || 80;
+        const host =
+          (req.host as string) ?? fullRequest.request.host ?? "unknown";
+        const port = (req.port as number) ?? fullRequest.request.port ?? 80;
         const isTls =
-          request.isTls !== undefined ? request.isTls : port === 443;
+          req.isTls !== undefined ? req.isTls === true : port === 443;
         const targetUrl = `${isTls ? "https" : "http"}://${host}${port !== (isTls ? 443 : 80) ? `:${port}` : ""}`;
 
         requestsToProcess.push({
@@ -253,9 +179,9 @@ const sendRowsToOriginal = async (sdk: FrontendSDK, context: any) => {
           originalRequest: fullRequest.request,
         });
       } catch (error) {
-        console.error(
-          `[Compare] Error preparing request ${request.id}:`,
-          error,
+        console.warn(
+          "Compare: Skipping request in batch",
+          error instanceof Error ? error.message : String(error),
         );
       }
     }
@@ -269,7 +195,7 @@ const sendRowsToOriginal = async (sdk: FrontendSDK, context: any) => {
       targetUrl,
       originalRequest,
     } of requestsToProcess) {
-      await (sdk.backend as any).addRequestToPanel(
+      await sdk.backend.addRequestToPanel(
         1,
         rawRequest,
         targetUrl,
@@ -277,77 +203,60 @@ const sendRowsToOriginal = async (sdk: FrontendSDK, context: any) => {
       );
     }
 
-    // Navigate to Compare page
-    sdk.navigation.goTo("/compare");
-
     window.dispatchEvent(
       new CustomEvent("compare-data-updated", { detail: { panel: 1 } }),
     );
 
-    try {
-      await sdk.window.showToast(
-        `${requestsToProcess.length} request(s) sent to Original`,
-        {
-          variant: "success",
-          duration: 3000,
-        },
-      );
-    } catch (error) {
-      console.log(`${requestsToProcess.length} request(s) sent to Original`);
-    }
+    sdk.window.showToast(
+      `${requestsToProcess.length} request(s) sent to Original`,
+      { variant: "success", duration: 3000 },
+    );
   } catch (error) {
-    console.error("[Compare] Failed to send requests to Original:", error);
-
-    try {
-      await sdk.window.showToast(
-        `Failed to send requests: ${error instanceof Error ? error.message : "Unknown error"}`,
-        {
-          variant: "error",
-          duration: 3000,
-        },
-      );
-    } catch (toastError) {
-      console.error(
-        `Failed to send requests: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
+    sdk.window.showToast(
+      `Failed to send requests: ${error instanceof Error ? error.message : "Unknown error"}`,
+      { variant: "error", duration: 3000 },
+    );
   }
 };
 
-// Context menu command handler for request rows Modified
-const sendRowsToModified = async (sdk: FrontendSDK, context: any) => {
+const sendRowsToModified = async (
+  sdk: FrontendSDK,
+  context: RequestRowContext,
+) => {
   try {
-    try {
-      await sdk.window.showToast(
-        "Processing selected requests for Modified...",
-        {
-          variant: "info",
-          duration: 3000,
-        },
-      );
-    } catch (error) {
-      console.log("Processing selected requests for Modified...");
-    }
-
-    if (!context || !context.requests || !context.requests.length) {
-      console.error("[Compare] No requests in RequestRowContext");
+    const requests = context.requests;
+    if (
+      requests === undefined ||
+      !Array.isArray(requests) ||
+      requests.length === 0
+    ) {
       throw new Error("No requests selected");
     }
 
-    const requests = context.requests.slice(0, 25); // Limit to 25 requests for safety
+    const requestsSlice = requests.slice(0, 25);
+    const requestsToProcess: Array<{
+      rawRequest: string;
+      targetUrl: string;
+      originalRequest: unknown;
+    }> = [];
 
-    const requestsToProcess = [];
-
-    for (const request of requests) {
+    for (const request of requestsSlice) {
       try {
-        if (!request || !request.id) {
-          console.error("[Compare] Invalid request in RequestRowContext");
+        const req = request as Record<string, unknown>;
+        if (req === undefined || req.id === undefined) {
           continue;
         }
 
-        const fullRequest = await sdk.graphql.request({ id: request.id });
-        if (!fullRequest.request?.raw) {
-          console.error(`[Compare] No raw request data for ID: ${request.id}`);
+        let requestId: string;
+        if (typeof req.id === "string") {
+          requestId = req.id;
+        } else if (typeof req.id === "number") {
+          requestId = String(req.id);
+        } else {
+          continue;
+        }
+        const fullRequest = await sdk.graphql.request({ id: requestId });
+        if (fullRequest.request?.raw === undefined) {
           continue;
         }
 
@@ -359,22 +268,22 @@ const sendRowsToModified = async (sdk: FrontendSDK, context: any) => {
           typeof fullRequest.request.raw === "object" &&
           "toText" in fullRequest.request.raw
         ) {
-          rawRequest = (fullRequest.request.raw as any).toText();
+          rawRequest = (
+            fullRequest.request.raw as { toText: () => string }
+          ).toText();
         } else {
           rawRequest = String(fullRequest.request.raw);
         }
 
-        if (!rawRequest || rawRequest.trim() === "") {
-          console.error(
-            `[Compare] Empty raw request data for ID: ${request.id}`,
-          );
+        if (rawRequest.trim() === "") {
           continue;
         }
 
-        const host = request.host || fullRequest.request.host || "unknown";
-        const port = request.port || fullRequest.request.port || 80;
+        const host =
+          (req.host as string) ?? fullRequest.request.host ?? "unknown";
+        const port = (req.port as number) ?? fullRequest.request.port ?? 80;
         const isTls =
-          request.isTls !== undefined ? request.isTls : port === 443;
+          req.isTls !== undefined ? req.isTls === true : port === 443;
         const targetUrl = `${isTls ? "https" : "http"}://${host}${port !== (isTls ? 443 : 80) ? `:${port}` : ""}`;
 
         requestsToProcess.push({
@@ -383,9 +292,9 @@ const sendRowsToModified = async (sdk: FrontendSDK, context: any) => {
           originalRequest: fullRequest.request,
         });
       } catch (error) {
-        console.error(
-          `[Compare] Error preparing request ${request.id}:`,
-          error,
+        console.warn(
+          "Compare: Skipping request in batch",
+          error instanceof Error ? error.message : String(error),
         );
       }
     }
@@ -399,7 +308,7 @@ const sendRowsToModified = async (sdk: FrontendSDK, context: any) => {
       targetUrl,
       originalRequest,
     } of requestsToProcess) {
-      await (sdk.backend as any).addRequestToPanel(
+      await sdk.backend.addRequestToPanel(
         2,
         rawRequest,
         targetUrl,
@@ -407,186 +316,128 @@ const sendRowsToModified = async (sdk: FrontendSDK, context: any) => {
       );
     }
 
-    // Navigate to Compare page
-    sdk.navigation.goTo("/compare");
-
     window.dispatchEvent(
       new CustomEvent("compare-data-updated", { detail: { panel: 2 } }),
     );
 
-    try {
-      await sdk.window.showToast(
-        `${requestsToProcess.length} request(s) sent to Modified`,
-        {
-          variant: "success",
-          duration: 3000,
-        },
-      );
-    } catch (error) {
-      console.log(`${requestsToProcess.length} request(s) sent to Modified`);
-    }
+    sdk.window.showToast(
+      `${requestsToProcess.length} request(s) sent to Modified`,
+      { variant: "success", duration: 3000 },
+    );
   } catch (error) {
-    console.error("[Compare] Failed to send requests to Modified:", error);
-
-    try {
-      await sdk.window.showToast(
-        `Failed to send requests: ${error instanceof Error ? error.message : "Unknown error"}`,
-        {
-          variant: "error",
-          duration: 3000,
-        },
-      );
-    } catch (toastError) {
-      console.error(
-        `Failed to send requests: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
+    sdk.window.showToast(
+      `Failed to send requests: ${error instanceof Error ? error.message : "Unknown error"}`,
+      { variant: "error", duration: 3000 },
+    );
   }
 };
 
-// Context menu command handler for Response to Original
-const sendResponseToOriginal = async (sdk: FrontendSDK, context: any) => {
+type ResponseContext = {
+  response?: { raw?: string | { toText?: () => string } };
+  request?: { host?: string; path?: string; port?: number; isTls?: boolean };
+};
+
+const sendResponseToOriginal = async (
+  sdk: FrontendSDK,
+  context: ResponseContext,
+) => {
   try {
     const response = context.response;
-
-    if (!response) {
+    if (response === undefined) {
       throw new Error("No response found in context");
     }
 
-    let rawResponse = "";
-    if (response.raw && typeof response.raw === "string") {
-      rawResponse = response.raw;
-    } else if (response.raw && response.raw.toText) {
-      try {
-        rawResponse = response.raw.toText();
-      } catch (e) {
-        throw new Error("Failed to extract response data");
-      }
-    }
-
-    if (!rawResponse || rawResponse.trim() === "") {
+    const raw =
+      typeof response.raw === "string"
+        ? response.raw
+        : typeof (response.raw as { toText?: () => string })?.toText ===
+            "function"
+          ? (response.raw as { toText: () => string }).toText()
+          : "";
+    if (raw.trim() === "") {
       throw new Error("Empty response data");
     }
 
     let sourceUrl = "http_response";
-    if (context.request) {
-      const req = context.request;
-      const host = req.host || "unknown";
-      const port = req.port || 80;
-      const isTls = req.isTls || false;
-      sourceUrl = `${isTls ? "https" : "http"}://${host}${port !== (isTls ? 443 : 80) ? `:${port}` : ""}${req.path || "/"}`;
+    const req = context.request;
+    if (req !== undefined) {
+      const host = req.host ?? "unknown";
+      const port = req.port ?? 80;
+      const isTls = req.isTls === true;
+      sourceUrl = `${isTls ? "https" : "http"}://${host}:${port}${req.path ?? "/"}`;
     }
 
-    await (sdk.backend as any).addResponseToPanel(1, rawResponse, sourceUrl, {
-      host: context.request?.host,
-      port: context.request?.port,
-      isTls: context.request?.isTls,
+    await sdk.backend.addResponseToPanel(1, raw, sourceUrl, {
+      host: req?.host,
+      port: req?.port,
+      isTls: req?.isTls,
     });
-
-    // Navigate to Compare page
-    sdk.navigation.goTo("/compare");
 
     window.dispatchEvent(
       new CustomEvent("compare-data-updated", { detail: { panel: 1 } }),
     );
 
-    try {
-      await sdk.window.showToast("Response sent to Original", {
-        variant: "success",
-        duration: 3000,
-      });
-    } catch (error) {
-      console.log("Response sent to Original");
-    }
+    sdk.window.showToast("Response sent to Original", {
+      variant: "success",
+      duration: 3000,
+    });
   } catch (error) {
-    console.error("[Compare] Failed to send response to Original:", error);
-
-    try {
-      await sdk.window.showToast(
-        `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}`,
-        {
-          variant: "error",
-          duration: 3000,
-        },
-      );
-    } catch (toastError) {
-      console.error(
-        `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
+    sdk.window.showToast(
+      `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}`,
+      { variant: "error", duration: 3000 },
+    );
   }
 };
 
-// Context menu command handler for Response to Modified
-const sendResponseToModified = async (sdk: FrontendSDK, context: any) => {
+const sendResponseToModified = async (
+  sdk: FrontendSDK,
+  context: ResponseContext,
+) => {
   try {
     const response = context.response;
-
-    if (!response) {
+    if (response === undefined) {
       throw new Error("No response found in context");
     }
 
-    let rawResponse = "";
-    if (response.raw && typeof response.raw === "string") {
-      rawResponse = response.raw;
-    } else if (response.raw && response.raw.toText) {
-      try {
-        rawResponse = response.raw.toText();
-      } catch (e) {
-        throw new Error("Failed to extract response data");
-      }
-    }
-
-    if (!rawResponse || rawResponse.trim() === "") {
+    const raw =
+      typeof response.raw === "string"
+        ? response.raw
+        : typeof (response.raw as { toText?: () => string })?.toText ===
+            "function"
+          ? (response.raw as { toText: () => string }).toText()
+          : "";
+    if (raw.trim() === "") {
       throw new Error("Empty response data");
     }
 
     let sourceUrl = "http_response";
-    if (context.request) {
-      const req = context.request;
-      const host = req.host || "unknown";
-      const port = req.port || 80;
-      const isTls = req.isTls || false;
-      sourceUrl = `${isTls ? "https" : "http"}://${host}${port !== (isTls ? 443 : 80) ? `:${port}` : ""}${req.path || "/"}`;
+    const req = context.request;
+    if (req !== undefined) {
+      const host = req.host ?? "unknown";
+      const port = req.port ?? 80;
+      const isTls = req.isTls === true;
+      sourceUrl = `${isTls ? "https" : "http"}://${host}:${port}${req.path ?? "/"}`;
     }
 
-    await (sdk.backend as any).addResponseToPanel(2, rawResponse, sourceUrl, {
-      host: context.request?.host,
-      port: context.request?.port,
-      isTls: context.request?.isTls,
+    await sdk.backend.addResponseToPanel(2, raw, sourceUrl, {
+      host: req?.host,
+      port: req?.port,
+      isTls: req?.isTls,
     });
-
-    // Navigate to Compare page
-    sdk.navigation.goTo("/compare");
 
     window.dispatchEvent(
       new CustomEvent("compare-data-updated", { detail: { panel: 2 } }),
     );
 
-    try {
-      await sdk.window.showToast("Response sent to Modified", {
-        variant: "success",
-        duration: 3000,
-      });
-    } catch (error) {
-      console.log("Response sent to Modified");
-    }
+    sdk.window.showToast("Response sent to Modified", {
+      variant: "success",
+      duration: 3000,
+    });
   } catch (error) {
-    console.error("[Compare] Failed to send response to Modified:", error);
-
-    try {
-      await sdk.window.showToast(
-        `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}`,
-        {
-          variant: "error",
-          duration: 3000,
-        },
-      );
-    } catch (toastError) {
-      console.error(
-        `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
+    sdk.window.showToast(
+      `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}`,
+      { variant: "error", duration: 3000 },
+    );
   }
 };
 
@@ -619,25 +470,24 @@ export const init = (sdk: FrontendSDK) => {
     icon: "fas fa-columns",
   });
 
-  // Register context menu commands
   sdk.commands.register(Commands.sendToOriginal, {
     name: "Send to Original",
-    run: (context) => sendToOriginal(sdk, context),
+    run: (context) => sendToOriginal(sdk, context as RequestContext),
   });
 
   sdk.commands.register(Commands.sendToModified, {
     name: "Send to Modified",
-    run: (context) => sendToModified(sdk, context),
+    run: (context) => sendToModified(sdk, context as RequestContext),
   });
 
   sdk.commands.register(Commands.sendRowsToOriginal, {
     name: "Send to Original",
-    run: (context) => sendRowsToOriginal(sdk, context),
+    run: (context) => sendRowsToOriginal(sdk, context as RequestRowContext),
   });
 
   sdk.commands.register(Commands.sendRowsToModified, {
     name: "Send to Modified",
-    run: (context) => sendRowsToModified(sdk, context),
+    run: (context) => sendRowsToModified(sdk, context as RequestRowContext),
   });
 
   // Register context menu item for individual requests
@@ -669,12 +519,12 @@ export const init = (sdk: FrontendSDK) => {
   // Register context menu commands for responses
   sdk.commands.register(Commands.sendResponseToOriginal, {
     name: "Send to Original",
-    run: (context) => sendResponseToOriginal(sdk, context),
+    run: (context) => sendResponseToOriginal(sdk, context as ResponseContext),
   });
 
   sdk.commands.register(Commands.sendResponseToModified, {
     name: "Send to Modified",
-    run: (context) => sendResponseToModified(sdk, context),
+    run: (context) => sendResponseToModified(sdk, context as ResponseContext),
   });
 
   // Register context menu items for responses

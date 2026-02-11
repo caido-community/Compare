@@ -1,100 +1,61 @@
 import type { Caido } from "@caido/sdk-frontend";
+import type { API } from "backend";
+import type {
+  CompareItem,
+  CompareStorageResult,
+  ComparisonDiff,
+  ComparisonRequest,
+  ComparisonResult,
+  ComparisonSummary,
+  ComparisonViewResult,
+  FileUploadResult,
+  PanelDataResponse,
+} from "shared";
 
-export type FrontendSDK = Caido;
+export type FrontendSDK = Caido<API, Record<string, never>>;
 
-// Data types for comparison - matching backend types
-export interface CompareItem {
-  id: number;
-  length: number;
-  data: string;
-  preview: string;
-  timestamp: Date;
-  type: "request" | "response" | "file" | "clipboard";
-  source?: string;
-  metadata?: Record<string, any>;
-}
+export type {
+  CompareItem,
+  CompareStorageResult,
+  ComparisonDiff,
+  ComparisonRequest,
+  ComparisonResult,
+  ComparisonSummary,
+  ComparisonViewResult,
+  FileUploadResult,
+  PanelDataResponse,
+};
 
-export interface ComparisonResult {
-  type: "words" | "bytes" | "characters";
-  differences: ComparisonDifference[];
-  summary: {
-    added: number;
-    deleted: number;
-    modified: number;
-    total: number;
-  };
-}
+export type CompareOptions = {
+  ignoreWhitespace?: boolean;
+  ignoreCase?: boolean;
+};
 
-export interface ComparisonDifference {
-  type: "added" | "deleted" | "modified";
-  position: number;
-  length: number;
-  content: string;
-  lineNumber?: number;
-}
-
-export interface CompareSettings {
-  ignoreWhitespace: boolean;
-  ignoreCase: boolean;
-  showLineNumbers: boolean;
-  syncScroll: boolean;
-  maxItems: number;
-  autoSave: boolean;
-}
-
-// Storage result wrapper - matching backend
-export interface CompareStorageResult<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-// Panel data response - matching backend
-export interface PanelDataResponse {
-  items: CompareItem[];
-  count: number;
-  lastUpdated: Date;
-}
-
-// File upload result - matching backend
-export interface FileUploadResult {
-  success: boolean;
-  item?: CompareItem;
-  error?: string;
-}
-
-// UI state types
-export interface UIState {
+export type UIState = {
   loading: boolean;
-  error: string | null;
+  error: string | undefined;
   comparisonInProgress: boolean;
   showComparisonModal: boolean;
-}
+};
 
-export interface PanelState {
+export type PanelState = {
   items: CompareItem[];
   selectedItems: CompareItem[];
   loading: boolean;
-  error: string | null;
-}
+  error: string | undefined;
+};
 
-// Component props and emits
-export interface CompareProps {
-  // Future props for component customization
-}
+export type CompareProps = Record<string, never>;
 
-export interface CompareEmits {
-  // Future events for component communication
-}
+export type CompareEmits = Record<string, never>;
 
-// API call types for better type safety
-export interface BackendAPI {
+export type BackendAPI = {
   saveItemToPanel(
     panelNumber: 1 | 2,
     data: string,
     type: CompareItem["type"],
     source?: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<CompareStorageResult<CompareItem>>;
   loadPanelData(
     panelNumber: 1 | 2,
@@ -109,8 +70,13 @@ export interface BackendAPI {
     filename?: string,
   ): Promise<FileUploadResult>;
   processClipboardData(clipboardContent: string): Promise<FileUploadResult>;
-  processHttpRequest(requestData: any): Promise<FileUploadResult>;
-  processHttpResponse(responseData: any): Promise<FileUploadResult>;
-  getStorageStats(): Promise<CompareStorageResult<any>>;
+  processHttpRequest(requestData: unknown): Promise<FileUploadResult>;
+  processHttpResponse(responseData: unknown): Promise<FileUploadResult>;
+  performComparison(request: ComparisonRequest): Promise<ComparisonResult>;
+  getStorageStats(): Promise<CompareStorageResult<unknown>>;
   validateStorage(): Promise<CompareStorageResult<boolean>>;
-}
+};
+
+export type BackendResult<T> =
+  | { kind: "Success"; value: T }
+  | { kind: "Error"; error: string };

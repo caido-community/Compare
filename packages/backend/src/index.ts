@@ -1,11 +1,15 @@
 import type { DefineAPI, SDK } from "caido:plugin";
 
+import { ComparisonError, StorageError } from "./errors";
 import { CompareStore } from "./stores/compareStore";
 import {
   type CompareItem,
   type CompareStorageResult,
+  type ComparisonDiff,
   type ComparisonRequest,
   type ComparisonResult,
+  type ComparisonSummary,
+  type ComparisonViewResult,
   type FileUploadResult,
   type PanelDataResponse,
   type Result,
@@ -19,6 +23,14 @@ import {
   saveItemToFile,
 } from "./utils/fileUtils";
 import { IdGenerator } from "./utils/idGenerator";
+
+export type {
+  ComparisonDiff,
+  ComparisonRequest,
+  ComparisonResult,
+  ComparisonSummary,
+  ComparisonViewResult,
+};
 
 const createPreview = (data: string, maxLength: number = 100): string => {
   if (data.length <= maxLength) return data;
@@ -53,25 +65,14 @@ const validateItemData = (data: string): ValidationResult => {
   };
 };
 
-// Enhanced logging utility
-const logOperation = (sdk: SDK, operation: string, details: any = {}) => {
-  sdk.console.log(`[Compare Plugin] ${operation}: ${JSON.stringify(details)}`);
-};
-
 const saveItemToPanel = async (
   sdk: SDK,
   panelNumber: 1 | 2,
   data: string,
   type: CompareItem["type"],
   source?: string,
-  metadata?: Record<string, any>,
+  metadata?: Record<string, unknown>,
 ): Promise<CompareStorageResult<CompareItem>> => {
-  logOperation(
-    sdk,
-    `Saving item to ${panelNumber === 1 ? "Original" : "Modified"}`,
-    { type, source, dataLength: data.length },
-  );
-
   const validation = validateItemData(data);
   if (!validation.valid) {
     return {
@@ -105,16 +106,10 @@ const saveItemToPanel = async (
       };
     }
 
-    logOperation(
-      sdk,
-      `Successfully saved item ${item.id} to ${panelNumber === 1 ? "Original" : "Modified"}`,
-    );
     return { success: true, data: item };
   } catch (error) {
-    logOperation(
-      sdk,
-      `Error saving item to ${panelNumber === 1 ? "Original" : "Modified"}`,
-      { error: (error as Error).message },
+    sdk.console.error(
+      `Compare: Error saving item to ${panelNumber === 1 ? "Original" : "Modified"}: ${(error as Error).message}`,
     );
     return {
       success: false,
@@ -123,15 +118,10 @@ const saveItemToPanel = async (
   }
 };
 
-const loadPanelData = async (
+const loadPanelData = (
   sdk: SDK,
   panelNumber: 1 | 2,
 ): Promise<CompareStorageResult<PanelDataResponse>> => {
-  logOperation(
-    sdk,
-    `Loading data for ${panelNumber === 1 ? "Original" : "Modified"}`,
-  );
-
   try {
     const store = CompareStore.get();
     const items = store.getPanelItems(panelNumber);
@@ -142,16 +132,15 @@ const loadPanelData = async (
       lastUpdated: new Date(),
     };
 
-    logOperation(
-      sdk,
-      `Loaded ${items.length} items for ${panelNumber === 1 ? "Original" : "Modified"}`,
-    );
-    return { success: true, data: response };
+    return Promise.resolve({ success: true, data: response });
   } catch (error) {
-    return {
+    sdk.console.error(
+      `Compare: Failed to load panel data: ${(error as Error).message}`,
+    );
+    return Promise.resolve({
       success: false,
       error: `Failed to load ${panelNumber === 1 ? "Original" : "Modified"} data: ${(error as Error).message}`,
-    };
+    });
   }
 };
 
@@ -160,11 +149,6 @@ const removeItemFromPanel = async (
   panelNumber: 1 | 2,
   itemId: number,
 ): Promise<Result<void>> => {
-  logOperation(
-    sdk,
-    `Removing item ${itemId} from ${panelNumber === 1 ? "Original" : "Modified"}`,
-  );
-
   try {
     const store = CompareStore.get();
 
@@ -176,21 +160,14 @@ const removeItemFromPanel = async (
       };
     }
 
-    const fileDeleted = await deleteItemFile(sdk, panelNumber, itemId);
+    await deleteItemFile(sdk, panelNumber, itemId);
 
     store.deletePanelItem(panelNumber, itemId);
 
-    logOperation(
-      sdk,
-      `Successfully removed item ${itemId} from ${panelNumber === 1 ? "Original" : "Modified"}`,
-      { fileDeleted },
-    );
     return { kind: "Success", value: undefined };
   } catch (error) {
-    logOperation(
-      sdk,
-      `Error removing item ${itemId} from ${panelNumber === 1 ? "Original" : "Modified"}`,
-      { error: (error as Error).message },
+    sdk.console.error(
+      `Compare: Error removing item ${itemId}: ${(error as Error).message}`,
     );
     return {
       kind: "Error",
@@ -203,29 +180,17 @@ const clearPanelData = async (
   sdk: SDK,
   panelNumber: 1 | 2,
 ): Promise<Result<void>> => {
-  logOperation(
-    sdk,
-    `Clearing all data from ${panelNumber === 1 ? "Original" : "Modified"}`,
-  );
-
   try {
     const store = CompareStore.get();
 
-    const filesCleared = await clearPanelFiles(sdk, panelNumber);
+    await clearPanelFiles(sdk, panelNumber);
 
     store.clearPanel(panelNumber);
 
-    logOperation(
-      sdk,
-      `Successfully cleared ${panelNumber === 1 ? "Original" : "Modified"}`,
-      { filesCleared },
-    );
     return { kind: "Success", value: undefined };
   } catch (error) {
-    logOperation(
-      sdk,
-      `Error clearing ${panelNumber === 1 ? "Original" : "Modified"}`,
-      { error: (error as Error).message },
+    sdk.console.error(
+      `Compare: Error clearing panel: ${(error as Error).message}`,
     );
     return {
       kind: "Error",
@@ -234,23 +199,18 @@ const clearPanelData = async (
   }
 };
 
-const processFileUpload = async (
+const processFileUpload = (
   sdk: SDK,
   fileContent: string,
   filename?: string,
 ): Promise<FileUploadResult> => {
-  logOperation(sdk, "Processing file upload", {
-    filename,
-    size: fileContent.length,
-  });
-
   try {
     const validation = validateItemData(fileContent);
     if (!validation.valid) {
-      return {
+      return Promise.resolve({
         success: false,
         error: `File validation failed: ${validation.errors.join(", ")}`,
-      };
+      });
     }
 
     const item: CompareItem = {
@@ -260,37 +220,33 @@ const processFileUpload = async (
       preview: createPreview(fileContent),
       timestamp: new Date(),
       type: "file",
-      source: filename || "uploaded_file",
+      source: filename !== undefined ? filename : "uploaded_file",
       metadata: {
         filename: filename,
         uploadedAt: new Date().toISOString(),
       },
     };
 
-    return { success: true, item };
+    return Promise.resolve({ success: true, item });
   } catch (error) {
-    return {
+    return Promise.resolve({
       success: false,
       error: `File processing failed: ${(error as Error).message}`,
-    };
+    });
   }
 };
 
-const processClipboardData = async (
+const processClipboardData = (
   sdk: SDK,
   clipboardContent: string,
 ): Promise<FileUploadResult> => {
-  logOperation(sdk, "Processing clipboard data", {
-    size: clipboardContent.length,
-  });
-
   try {
     const validation = validateItemData(clipboardContent);
     if (!validation.valid) {
-      return {
+      return Promise.resolve({
         success: false,
         error: `Clipboard validation failed: ${validation.errors.join(", ")}`,
-      };
+      });
     }
 
     const item: CompareItem = {
@@ -306,34 +262,38 @@ const processClipboardData = async (
       },
     };
 
-    return { success: true, item };
+    return Promise.resolve({ success: true, item });
   } catch (error) {
-    return {
+    return Promise.resolve({
       success: false,
       error: `Clipboard processing failed: ${(error as Error).message}`,
-    };
+    });
   }
 };
 
-const processHttpRequest = async (
+const processHttpRequest = (
   sdk: SDK,
-  requestData: any,
+  requestData: unknown,
 ): Promise<FileUploadResult> => {
-  logOperation(sdk, "Processing HTTP request data");
-
   try {
-    // Extract request information
+    const req = requestData as Record<string, unknown> | undefined;
     const requestString =
-      requestData?.raw ||
-      requestData?.toString() ||
-      JSON.stringify(requestData);
+      typeof req?.raw === "string"
+        ? req.raw
+        : typeof requestData === "object" &&
+            requestData !== null &&
+            "toString" in requestData &&
+            typeof (requestData as { toString: () => string }).toString ===
+              "function"
+          ? (requestData as { toString: () => string }).toString()
+          : JSON.stringify(requestData);
 
     const validation = validateItemData(requestString);
     if (!validation.valid) {
-      return {
+      return Promise.resolve({
         success: false,
         error: `Request validation failed: ${validation.errors.join(", ")}`,
-      };
+      });
     }
 
     const item: CompareItem = {
@@ -343,42 +303,46 @@ const processHttpRequest = async (
       preview: createPreview(requestString),
       timestamp: new Date(),
       type: "request",
-      source: requestData?.url || "http_request",
+      source: typeof req?.url === "string" ? req.url : "http_request",
       metadata: {
-        method: requestData?.method,
-        url: requestData?.url,
+        method: req?.method,
+        url: req?.url,
         processedAt: new Date().toISOString(),
       },
     };
 
-    return { success: true, item };
+    return Promise.resolve({ success: true, item });
   } catch (error) {
-    return {
+    return Promise.resolve({
       success: false,
       error: `Request processing failed: ${(error as Error).message}`,
-    };
+    });
   }
 };
 
-const processHttpResponse = async (
+const processHttpResponse = (
   sdk: SDK,
-  responseData: any,
+  responseData: unknown,
 ): Promise<FileUploadResult> => {
-  logOperation(sdk, "Processing HTTP response data");
-
   try {
-    // Extract response information
+    const res = responseData as Record<string, unknown> | undefined;
     const responseString =
-      responseData?.raw ||
-      responseData?.toString() ||
-      JSON.stringify(responseData);
+      typeof res?.raw === "string"
+        ? res.raw
+        : typeof responseData === "object" &&
+            responseData !== null &&
+            "toString" in responseData &&
+            typeof (responseData as { toString: () => string }).toString ===
+              "function"
+          ? (responseData as { toString: () => string }).toString()
+          : JSON.stringify(responseData);
 
     const validation = validateItemData(responseString);
     if (!validation.valid) {
-      return {
+      return Promise.resolve({
         success: false,
         error: `Response validation failed: ${validation.errors.join(", ")}`,
-      };
+      });
     }
 
     const item: CompareItem = {
@@ -388,38 +352,36 @@ const processHttpResponse = async (
       preview: createPreview(responseString),
       timestamp: new Date(),
       type: "response",
-      source: responseData?.url || "http_response",
+      source: typeof res?.url === "string" ? res.url : "http_response",
       metadata: {
-        status: responseData?.status,
-        url: responseData?.url,
+        status: res?.status,
+        url: res?.url,
         processedAt: new Date().toISOString(),
       },
     };
 
-    return { success: true, item };
+    return Promise.resolve({ success: true, item });
   } catch (error) {
-    return {
+    return Promise.resolve({
       success: false,
       error: `Response processing failed: ${(error as Error).message}`,
-    };
+    });
   }
 };
 
-// Backend comparison function - delegates to frontend comparison engine
+/**
+ * Stub for comparison API. Actual diffing runs in the frontend (comparisonEngine).
+ * Kept for API consistency and possible future server-side comparison.
+ * Callers should use the frontend comparison flow for real results.
+ */
 const performComparison = (
   sdk: SDK,
   request: ComparisonRequest,
 ): ComparisonResult => {
-  logOperation(sdk, `Performing ${request.type} comparison`);
+  const { item1, item2, type } = request;
 
-  const { item1, item2, type, options } = request;
-
-  if (!item1 || !item2) {
-    throw new Error("Both items are required for comparison");
-  }
-
-  if (options?.ignoreWhitespace || options?.ignoreCase) {
-    sdk.console.log("Advanced comparison options available in frontend engine");
+  if (item1 === undefined || item2 === undefined) {
+    throw new ComparisonError("Both items are required for comparison");
   }
 
   const result: ComparisonResult = {
@@ -433,32 +395,28 @@ const performComparison = (
     },
   };
 
-  logOperation(
-    sdk,
-    `Comparison request processed - processing handled by frontend`,
-  );
   return result;
 };
 
 const getStorageStats = async (
   sdk: SDK,
-): Promise<CompareStorageResult<any>> => {
+): Promise<CompareStorageResult<unknown>> => {
   try {
     const store = CompareStore.get();
     const stats = store.getStats();
 
-    return {
+    return Promise.resolve({
       success: true,
       data: {
         ...stats,
         timestamp: new Date().toISOString(),
       },
-    };
+    });
   } catch (error) {
-    return {
+    return Promise.resolve({
       success: false,
       error: `Failed to get storage stats: ${(error as Error).message}`,
-    };
+    });
   }
 };
 
@@ -467,23 +425,19 @@ const addRequestToPanel = async (
   panelNumber: 1 | 2,
   rawRequest: string,
   targetUrl: string,
-  originalRequest: any,
+  originalRequest: unknown,
 ): Promise<string> => {
   try {
     const requestId = `req_${Date.now()}_${++requestCounter}`;
 
-    if (!rawRequest || rawRequest.trim() === "") {
-      throw new Error("Raw request data is required");
+    if (rawRequest.trim() === "") {
+      throw new StorageError("Raw request data is required");
     }
 
-    let method = "UNKNOWN";
-    if (rawRequest && typeof rawRequest === "string") {
-      const methodMatch = rawRequest.match(/^([A-Z]+)\s+/);
-      if (methodMatch && methodMatch[1]) {
-        method = methodMatch[1];
-      }
-    }
+    const methodMatch = rawRequest.match(/^([A-Z]+)\s+/);
+    const method = methodMatch?.[1] !== undefined ? methodMatch[1] : "UNKNOWN";
 
+    const orig = originalRequest as Record<string, unknown> | undefined;
     const newItem: CompareItem = {
       id: generateId(),
       length: rawRequest.length,
@@ -493,11 +447,11 @@ const addRequestToPanel = async (
       timestamp: new Date(),
       source: targetUrl,
       metadata: {
-        method: method,
+        method,
         url: targetUrl,
-        host: originalRequest.host,
-        port: originalRequest.port,
-        isTls: originalRequest.isTls,
+        host: orig?.host,
+        port: orig?.port,
+        isTls: orig?.isTls,
       },
     };
 
@@ -507,18 +461,13 @@ const addRequestToPanel = async (
     const fileSaved = await saveItemToFile(sdk, panelNumber, newItem);
     if (!fileSaved) {
       store.deletePanelItem(panelNumber, newItem.id);
-      throw new Error("Failed to save item to file storage");
+      throw new StorageError("Failed to save item to file storage");
     }
 
-    logOperation(
-      sdk,
-      `Successfully added request ${newItem.id} to ${panelNumber === 1 ? "Original" : "Modified"}`,
-    );
     return requestId;
   } catch (error) {
-    logOperation(
-      sdk,
-      `Error adding request to ${panelNumber === 1 ? "Original" : "Modified"}`,
+    sdk.console.error(
+      `Compare: Error adding request to panel: ${(error as Error).message}`,
     );
     throw error;
   }
@@ -531,23 +480,20 @@ const addResponseToPanel = async (
   panelNumber: 1 | 2,
   rawResponse: string,
   sourceUrl: string,
-  originalResponse: any,
+  originalResponse: unknown,
 ): Promise<string> => {
   try {
     const responseId = `resp_${Date.now()}_${++requestCounter}`;
 
-    if (!rawResponse || rawResponse.trim() === "") {
-      throw new Error("Raw response data is required");
+    if (rawResponse.trim() === "") {
+      throw new StorageError("Raw response data is required");
     }
 
-    let statusCode = "UNKNOWN";
-    if (rawResponse && typeof rawResponse === "string") {
-      const statusMatch = rawResponse.match(/^HTTP\/[\d.]+\s+(\d+)/);
-      if (statusMatch && statusMatch[1]) {
-        statusCode = statusMatch[1];
-      }
-    }
+    const statusMatch = rawResponse.match(/^HTTP\/[\d.]+\s+(\d+)/);
+    const statusCode =
+      statusMatch?.[1] !== undefined ? statusMatch[1] : "UNKNOWN";
 
+    const origResp = originalResponse as Record<string, unknown> | undefined;
     const newItem: CompareItem = {
       id: generateId(),
       length: rawResponse.length,
@@ -557,11 +503,11 @@ const addResponseToPanel = async (
       timestamp: new Date(),
       source: sourceUrl,
       metadata: {
-        statusCode: statusCode,
+        statusCode,
         url: sourceUrl,
-        host: originalResponse?.host,
-        port: originalResponse?.port,
-        isTls: originalResponse?.isTls,
+        host: origResp?.host,
+        port: origResp?.port,
+        isTls: origResp?.isTls,
       },
     };
 
@@ -571,18 +517,13 @@ const addResponseToPanel = async (
     const fileSaved = await saveItemToFile(sdk, panelNumber, newItem);
     if (!fileSaved) {
       store.deletePanelItem(panelNumber, newItem.id);
-      throw new Error("Failed to save item to file storage");
+      throw new StorageError("Failed to save item to file storage");
     }
 
-    logOperation(
-      sdk,
-      `Successfully added response ${newItem.id} to ${panelNumber === 1 ? "Original" : "Modified"}`,
-    );
     return responseId;
   } catch (error) {
-    logOperation(
-      sdk,
-      `Error adding response to ${panelNumber === 1 ? "Original" : "Modified"}`,
+    sdk.console.error(
+      `Compare: Error adding response to panel: ${(error as Error).message}`,
     );
     throw error;
   }
@@ -590,8 +531,6 @@ const addResponseToPanel = async (
 
 const initializeStorage = async (sdk: SDK): Promise<boolean> => {
   try {
-    logOperation(sdk, "Initializing storage from files");
-
     const directoriesReady = await ensureCompareDirectories(sdk);
     if (!directoriesReady) {
       sdk.console.error("Failed to create storage directories");
@@ -606,12 +545,6 @@ const initializeStorage = async (sdk: SDK): Promise<boolean> => {
 
     const idGenerator = IdGenerator.get();
     idGenerator.initialize();
-
-    logOperation(sdk, "Storage initialized successfully", {
-      panel1Items: panel1.length,
-      panel2Items: panel2.length,
-      totalItems: panel1.length + panel2.length,
-    });
 
     return true;
   } catch (error) {
@@ -635,7 +568,7 @@ export type API = DefineAPI<{
   processHttpRequest: typeof processHttpRequest;
   processHttpResponse: typeof processHttpResponse;
 
-  // Comparison API (enhanced in Phase 3)
+  // Comparison API
   performComparison: typeof performComparison;
 
   // Context menu API
@@ -651,17 +584,12 @@ export function init(sdk: SDK<API>) {
 
   sdk.events.onProjectChange(async (sdk, project) => {
     const projectName = project?.getName() ?? "Unknown";
-    logOperation(
-      sdk,
-      `Project changed to: ${projectName} - reinitializing storage`,
-    );
-
     const store = CompareStore.get();
     store.clearPanel(1);
     store.clearPanel(2);
 
     const success = await initializeStorage(sdk);
-    if (success) {
+    if (success === true) {
       sdk.console.log(
         `Compare Plugin: Storage reinitialized for project "${projectName}"`,
       );
@@ -672,8 +600,8 @@ export function init(sdk: SDK<API>) {
     }
   });
 
-  initializeStorage(sdk).then((success) => {
-    if (success) {
+  void initializeStorage(sdk).then((success) => {
+    if (success === true) {
       sdk.console.log(
         "Compare Plugin Backend: Storage initialized successfully",
       );
@@ -703,22 +631,4 @@ export function init(sdk: SDK<API>) {
   sdk.console.log(
     "Compare Plugin Backend: Successfully initialized with correct storage pattern",
   );
-
-  logOperation(sdk, "Enhanced API Registration Complete", {
-    endpoints: [
-      "saveItemToPanel",
-      "loadPanelData",
-      "removeItemFromPanel",
-      "clearPanelData",
-      "processFileUpload",
-      "processClipboardData",
-      "processHttpRequest",
-      "processHttpResponse",
-      "performComparison",
-      "addRequestToPanel",
-      "addResponseToPanel",
-      "getStorageStats",
-    ],
-    storagePattern: "in-memory + file persistence",
-  });
 }

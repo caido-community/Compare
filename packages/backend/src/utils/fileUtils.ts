@@ -5,6 +5,8 @@ import { type SDK } from "caido:plugin";
 
 import { type CompareItem } from "../types";
 
+type ErrnoLike = Error & { code?: string };
+
 export async function ensureCompareDirectories(sdk: SDK): Promise<boolean> {
   try {
     const dataDir = getCompareDataDir(sdk);
@@ -15,37 +17,33 @@ export async function ensureCompareDirectories(sdk: SDK): Promise<boolean> {
     await mkdir(panel1Dir, { recursive: true });
     await mkdir(panel2Dir, { recursive: true });
 
-    sdk.console.log("Compare directories initialized successfully");
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as Error;
     sdk.console.error(
-      "Failed to initialize compare directories: " + (error as Error).message,
+      "Failed to initialize compare directories: " + err.message,
     );
     return false;
   }
 }
 
-export function getCompareDataDir(sdk: SDK): string {
+function getCompareDataDir(sdk: SDK): string {
   return path.join(sdk.meta.path(), "compare-data");
 }
 
-export function getPanel1Dir(sdk: SDK): string {
+function getPanel1Dir(sdk: SDK): string {
   return path.join(getCompareDataDir(sdk), "panel1");
 }
 
-export function getPanel2Dir(sdk: SDK): string {
+function getPanel2Dir(sdk: SDK): string {
   return path.join(getCompareDataDir(sdk), "panel2");
 }
 
-export function getPanelDir(sdk: SDK, panelNumber: 1 | 2): string {
+function getPanelDir(sdk: SDK, panelNumber: 1 | 2): string {
   return panelNumber === 1 ? getPanel1Dir(sdk) : getPanel2Dir(sdk);
 }
 
-export function getItemPath(
-  sdk: SDK,
-  panelNumber: 1 | 2,
-  itemId: number,
-): string {
+function getItemPath(sdk: SDK, panelNumber: 1 | 2, itemId: number): string {
   const panelDir = getPanelDir(sdk, panelNumber);
   return path.join(panelDir, `${itemId}.json`);
 }
@@ -64,14 +62,10 @@ export async function saveItemToFile(
     };
 
     await writeFile(itemPath, JSON.stringify(storageItem, null, 2));
-    sdk.console.log(
-      `Saved item ${item.id} to ${panelNumber === 1 ? "Original" : "Modified"} file`,
-    );
     return true;
-  } catch (error) {
-    sdk.console.error(
-      `Failed to save item ${item.id} to file: ${(error as Error).message}`,
-    );
+  } catch (error: unknown) {
+    const err = error as Error;
+    sdk.console.error(`Failed to save item ${item.id} to file: ${err.message}`);
     return false;
   }
 }
@@ -84,25 +78,18 @@ export async function deleteItemFile(
   try {
     const itemPath = getItemPath(sdk, panelNumber, itemId);
     await rm(itemPath);
-    sdk.console.log(
-      `Deleted item ${itemId} file from ${panelNumber === 1 ? "Original" : "Modified"}`,
-    );
     return true;
-  } catch (error) {
-    if ((error as any).code === "ENOENT") {
-      sdk.console.log(
-        `Item ${itemId} file already didn't exist - considering deletion successful`,
-      );
+  } catch (error: unknown) {
+    const err = error as ErrnoLike;
+    if (err.code === "ENOENT") {
       return true;
     }
-    sdk.console.error(
-      `Failed to delete item ${itemId} file: ${(error as Error).message}`,
-    );
+    sdk.console.error(`Failed to delete item ${itemId} file: ${err.message}`);
     return false;
   }
 }
 
-export async function loadItemsFromFiles(
+async function loadItemsFromFiles(
   sdk: SDK,
   panelNumber: 1 | 2,
 ): Promise<CompareItem[]> {
@@ -125,20 +112,18 @@ export async function loadItemsFromFiles(
           };
 
           items.push(item);
-        } catch (fileError) {
+        } catch (fileError: unknown) {
+          const err = fileError as Error;
           sdk.console.warn(
-            `Failed to load item from file ${file}: ${(fileError as Error).message}`,
+            `Failed to load item from file ${file}: ${err.message}`,
           );
         }
       }
     }
-
-    sdk.console.log(
-      `Loaded ${items.length} items from ${panelNumber === 1 ? "Original" : "Modified"} files`,
-    );
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as Error;
     sdk.console.error(
-      `Failed to load items from ${panelNumber === 1 ? "Original" : "Modified"}: ${(error as Error).message}`,
+      `Failed to load items from ${panelNumber === 1 ? "Original" : "Modified"}: ${err.message}`,
     );
   }
 
@@ -156,36 +141,30 @@ export async function clearPanelFiles(
       const files = await readdir(panelDir);
 
       const deletePromises = files
-        .filter((file) => file.endsWith(".json"))
-        .map((file) => {
+        .filter((file: string) => file.endsWith(".json"))
+        .map((file: string) => {
           const filePath = path.join(panelDir, file);
-          return rm(filePath).catch((error) => {
-            if (error.code !== "ENOENT") {
-              sdk.console.warn(
-                `Failed to delete file ${file}: ${(error as Error).message}`,
-              );
+          return rm(filePath).catch((err: ErrnoLike) => {
+            if (err.code !== "ENOENT") {
+              sdk.console.warn(`Failed to delete file ${file}: ${err.message}`);
             }
           });
         });
 
       await Promise.all(deletePromises);
-      sdk.console.log(
-        `Cleared ${files.filter((f) => f.endsWith(".json")).length} files from ${panelNumber === 1 ? "Original" : "Modified"}`,
-      );
-    } catch (dirError) {
-      if ((dirError as any).code === "ENOENT") {
-        sdk.console.log(
-          `${panelNumber === 1 ? "Original" : "Modified"} directory doesn't exist - nothing to clear`,
-        );
+    } catch (dirError: unknown) {
+      const err = dirError as ErrnoLike;
+      if (err.code === "ENOENT") {
         return true;
       }
       throw dirError;
     }
 
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as Error;
     sdk.console.error(
-      `Failed to clear ${panelNumber === 1 ? "Original" : "Modified"} files: ${(error as Error).message}`,
+      `Failed to clear ${panelNumber === 1 ? "Original" : "Modified"} files: ${err.message}`,
     );
     return false;
   }
