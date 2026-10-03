@@ -7,7 +7,7 @@ import { useForm } from "./useForm";
 import { type DiffInput, type DiffResult } from "@/core/diff";
 import { type Services } from "@/services";
 import { type DiffRun } from "@/services/diff";
-import { buildItem } from "@/tests/fixtures";
+import { buildItem, buildItemServiceDouble } from "@/tests/fixtures";
 import { mountComposable } from "@/tests/mountComposable";
 
 const RESULT: DiffResult = {
@@ -35,16 +35,10 @@ const buildServices = () => {
   };
 
   const services: Services = {
-    items: {
+    items: buildItemServiceDouble({
       listItems: (panel) =>
         Promise.resolve(ok([buildItem(panel === "original" ? 1 : 2, panel)])),
-      addItem: () => Promise.resolve(ok(buildItem(9, ""))),
-      addRequests: () => Promise.resolve(ok([])),
-      removeItems: () => Promise.resolve(ok([])),
-      moveItems: () => Promise.resolve(ok([])),
-      clearPanel: (panel) => Promise.resolve(ok(panel)),
-      onItemsChanged: () => () => undefined,
-    },
+    }),
     notifications: {
       showSuccess: () => undefined,
       showError: (message) => errors.push(message),

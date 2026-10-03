@@ -1,14 +1,14 @@
+import { measureBytes } from "shared";
+
 import { type DiffMode, type DiffSummary, type Row } from "./types";
 
 type UnitCounter = (text: string) => number;
 
 const WORD_PATTERN = /[\p{L}\p{N}_]+/gu;
 
-const encoder = new TextEncoder();
-
 const UNIT_COUNTERS: Record<Exclude<DiffMode, "lines">, UnitCounter> = {
   words: (text) => text.match(WORD_PATTERN)?.length ?? 0,
-  bytes: (text) => encoder.encode(text).length,
+  bytes: measureBytes,
 };
 
 const buildEmptySummary = (): DiffSummary => ({

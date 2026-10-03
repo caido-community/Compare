@@ -78,7 +78,7 @@ export const usePanel = (
   };
 
   const addFile = async (file: File) => {
-    await addItem("file", file.name, await file.text());
+    await run(`add to ${title}`, () => services.items.addFile(panel, file));
   };
 
   const removeSelected = async () => {

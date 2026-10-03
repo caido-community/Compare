@@ -1,4 +1,5 @@
 import type {
+  AddFileItemInput,
   AddItemInput,
   AddRequestsInput,
   CompareItem,
@@ -10,6 +11,7 @@ import type { Result } from "./result";
 export type API = {
   listItems: (panel: Panel) => Promise<Result<CompareItem[]>>;
   addItem: (input: AddItemInput) => Promise<Result<CompareItem>>;
+  addFileItem: (input: AddFileItemInput) => Promise<Result<CompareItem>>;
   addRequests: (input: AddRequestsInput) => Promise<Result<CompareItem[]>>;
   removeItems: (selection: ItemSelection) => Promise<Result<number[]>>;
   moveItems: (selection: ItemSelection) => Promise<Result<CompareItem[]>>;

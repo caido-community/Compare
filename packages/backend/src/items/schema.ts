@@ -2,9 +2,10 @@ import {
   type CompareItem,
   err,
   ITEM_KINDS,
-  MAX_ITEM_LENGTH,
-  MAX_ITEM_MEGABYTES,
+  ITEM_TOO_LARGE_MESSAGE,
+  MAX_ITEM_BYTES,
   MAX_REQUESTS_PER_ADD,
+  measureBytes,
   ok,
   PANELS,
   type Result,
@@ -30,10 +31,17 @@ export const addItemSchema = z.object({
   data: z
     .string()
     .min(1, "The item is empty.")
-    .max(
-      MAX_ITEM_LENGTH,
-      `Items larger than ${MAX_ITEM_MEGABYTES} MB are not supported.`,
+    .refine(
+      (data) => measureBytes(data) <= MAX_ITEM_BYTES,
+      ITEM_TOO_LARGE_MESSAGE,
     ),
+});
+
+export const addFileItemSchema = z.object({
+  panel: panelSchema,
+  kind: kindSchema,
+  source: z.string().max(2048),
+  path: z.string().min(1, "The uploaded file has no path."),
 });
 
 export const addRequestsSchema = z.object({

@@ -5,15 +5,13 @@ import { describe, expect, it } from "vitest";
 import { usePanel } from "./usePanel";
 
 import { type ItemService } from "@/services/items";
-import { buildItem } from "@/tests/fixtures";
+import { buildItem, buildItemServiceDouble } from "@/tests/fixtures";
 import { mountComposable } from "@/tests/mountComposable";
 
 const buildServiceDouble = (stored: CompareItem[], failWith?: string) => {
   const calls: string[] = [];
-  const service: ItemService = {
+  const service = buildItemServiceDouble({
     listItems: () => Promise.resolve(ok(stored)),
-    addItem: () => Promise.resolve(ok(buildItem(99))),
-    addRequests: () => Promise.resolve(ok([])),
     removeItems: (selection) => {
       calls.push(`remove ${selection.ids.join(",")}`);
       return Promise.resolve(
@@ -24,9 +22,7 @@ const buildServiceDouble = (stored: CompareItem[], failWith?: string) => {
       calls.push(`move ${selection.ids.join(",")}`);
       return Promise.resolve(ok([]));
     },
-    clearPanel: (panel) => Promise.resolve(ok(panel)),
-    onItemsChanged: () => () => undefined,
-  };
+  });
   return { service, calls };
 };
 

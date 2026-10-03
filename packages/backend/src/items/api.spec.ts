@@ -1,4 +1,11 @@
-import { err, MAX_REQUESTS_PER_ADD, ok, type Panel } from "shared";
+import {
+  err,
+  ITEM_TOO_LARGE_MESSAGE,
+  MAX_ITEM_BYTES,
+  MAX_REQUESTS_PER_ADD,
+  ok,
+  type Panel,
+} from "shared";
 import { describe, expect, it } from "vitest";
 
 import { FIXED_TIME, TEST_ROOT } from "../tests/fixtures";
@@ -42,7 +49,13 @@ const setup = async (options = { isProjectOpen: true }) => {
       changes.count += 1;
     },
   });
-  const api = buildItemsApi({ project, store, readRequest, now });
+  const api = buildItemsApi({
+    project,
+    store,
+    fileSystem,
+    readRequest,
+    now,
+  });
   if (options.isProjectOpen) await project.open("project-a");
 
   const listIds = async (panel: Panel) => {
@@ -110,6 +123,46 @@ describe("adding items", () => {
     await addText("original", "data");
 
     expect(changes.count).toBe(before + 1);
+  });
+});
+
+describe("adding uploaded files", () => {
+  it("reads the uploaded file and stores its content", async () => {
+    const { api, fileSystem } = await setup();
+    fileSystem.files.set("/uploads/big.txt", "uploaded content");
+
+    const added = await api.addFileItem({
+      panel: "original",
+      kind: "file",
+      source: "big.txt",
+      path: "/uploads/big.txt",
+    });
+
+    expect(added.kind === "Ok" && added.value.data).toBe("uploaded content");
+  });
+
+  it("reports an upload that no longer exists", async () => {
+    const { api } = await setup();
+
+    const added = await api.addFileItem({
+      panel: "original",
+      kind: "file",
+      source: "gone.txt",
+      path: "/uploads/gone.txt",
+    });
+
+    expect(added).toEqual(err("The uploaded file no longer exists."));
+  });
+});
+
+describe("the size limit", () => {
+  it("measures bytes, so multi-byte text hits the limit sooner", async () => {
+    const { addText } = await setup();
+    const twoByteCharacters = "é".repeat(MAX_ITEM_BYTES / 2 + 1);
+
+    expect(await addText("original", twoByteCharacters)).toEqual(
+      err(ITEM_TOO_LARGE_MESSAGE),
+    );
   });
 });
 

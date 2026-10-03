@@ -42,12 +42,14 @@ export function init(sdk: SDK<Spec>) {
   const items = buildItemsApi({
     project,
     store,
+    fileSystem,
     readRequest: buildRequestReader(sdk),
     now,
   });
 
   sdk.api.register("listItems", (_sdk, panel) => items.listItems(panel));
   sdk.api.register("addItem", (_sdk, input) => items.addItem(input));
+  sdk.api.register("addFileItem", (_sdk, input) => items.addFileItem(input));
   sdk.api.register("addRequests", (_sdk, input) => items.addRequests(input));
   sdk.api.register("removeItems", (_sdk, selection) =>
     items.removeItems(selection),

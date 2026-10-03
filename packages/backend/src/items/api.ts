@@ -1,4 +1,5 @@
 import {
+  type AddFileItemInput,
   type AddItemInput,
   type AddRequestsInput,
   type CompareItem,
@@ -10,6 +11,8 @@ import {
   type Result,
 } from "shared";
 
+import { type FileSystem } from "../runtime/fileSystem";
+
 import {
   getNextId,
   type Mutation,
@@ -18,6 +21,7 @@ import {
   withPanel,
 } from "./project";
 import {
+  addFileItemSchema,
   addItemSchema,
   addRequestsSchema,
   panelSchema,
@@ -58,6 +62,7 @@ const sortById = (items: CompareItem[]) =>
 export const buildItemsApi = (deps: {
   project: ProjectState;
   store: ItemStore;
+  fileSystem: FileSystem;
   readRequest: RequestReader;
   now: () => string;
 }) => {
@@ -143,6 +148,27 @@ export const buildItemsApi = (deps: {
     return item === undefined ? err("The item was not added.") : ok(item);
   };
 
+  const readUploadedFile = async (path: string): Promise<Result<string>> => {
+    const read = await deps.fileSystem.readTextFile(path);
+    if (read.kind === "Found") return ok(read.content);
+    if (read.kind === "Missing")
+      return err("The uploaded file no longer exists.");
+    return err(`The uploaded file could not be read: ${read.message}`);
+  };
+
+  const addFileItem = async (
+    input: AddFileItemInput,
+  ): Promise<Result<CompareItem>> => {
+    const parsed = parseInput(addFileItemSchema, input);
+    if (parsed.kind === "Error") return parsed;
+
+    const { path, ...target } = parsed.value;
+    const content = await readUploadedFile(path);
+    if (content.kind === "Error") return content;
+
+    return addItem({ ...target, data: content.value });
+  };
+
   const addRequests = async (
     input: AddRequestsInput,
   ): Promise<Result<CompareItem[]>> => {
@@ -221,6 +247,7 @@ export const buildItemsApi = (deps: {
   return {
     listItems,
     addItem,
+    addFileItem,
     addRequests,
     removeItems,
     moveItems,
