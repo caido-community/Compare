@@ -12,7 +12,7 @@ const id = "compare";
 
 const name = "Compare";
 
-const version = "1.1.0";
+const version = "1.2.0";
 
 export const PLUGIN_DEFINES = {
   __PLUGIN_ID__: JSON.stringify(id),
