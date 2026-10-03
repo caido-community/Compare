@@ -10,7 +10,7 @@ type Props = {
   comparisonResult: ComparisonViewResult | undefined;
 };
 
-const props = defineProps<Props>();
+const { visible, comparisonResult } = defineProps<Props>();
 
 const emit = defineEmits<{
   "update:visible": [value: boolean];
@@ -22,14 +22,14 @@ const leftScrollArea = ref<HTMLElement>();
 const rightScrollArea = ref<HTMLElement>();
 
 const isVisible = computed({
-  get: () => props.visible,
+  get: () => visible,
   set: (value) => emit("update:visible", value),
 });
 
-const comparisonStats = computed(() => props.comparisonResult?.summary ?? null);
+const comparisonStats = computed(() => comparisonResult?.summary ?? null);
 
 const getDiffClass = (type: ComparisonDiff["type"]): string => {
-  const isLines = props.comparisonResult?.type === "lines";
+  const isLines = comparisonResult?.type === "lines";
 
   switch (type) {
     case "added":
@@ -51,7 +51,7 @@ const getDiffClass = (type: ComparisonDiff["type"]): string => {
   }
 };
 
-const isLineMode = computed(() => props.comparisonResult?.type === "lines");
+const isLineMode = computed(() => comparisonResult?.type === "lines");
 
 const handleClose = () => {
   emit("close");

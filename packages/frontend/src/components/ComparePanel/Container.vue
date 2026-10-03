@@ -14,7 +14,7 @@ type Props = {
   comparisonInProgress: boolean;
 };
 
-const props = defineProps<Props>();
+const { panelNumber, panelState, comparisonInProgress } = defineProps<Props>();
 
 const emit = defineEmits<{
   paste: [panelNumber: 1 | 2];
@@ -26,12 +26,12 @@ const emit = defineEmits<{
 }>();
 
 const selectedItems = computed({
-  get: () => props.panelState.selectedItems,
+  get: () => panelState.selectedItems,
   set: (value: CompareItem[]) => emit("update:selection", value),
 });
 
 const panelTitle = computed(() =>
-  props.panelNumber === 1 ? "Original" : "Modified",
+  panelNumber === 1 ? "Original" : "Modified",
 );
 
 const contextMenu = ref<InstanceType<typeof ContextMenu> | undefined>();
@@ -49,10 +49,10 @@ const handleSelectionUpdate = (newSelection: CompareItem[]) => {
   selectedItems.value = newSelection;
 };
 
-const handlePaste = () => emit("paste", props.panelNumber);
-const handleLoad = () => emit("load", props.panelNumber);
-const handleRemove = () => emit("remove", props.panelNumber);
-const handleClear = () => emit("clear", props.panelNumber);
+const handlePaste = () => emit("paste", panelNumber);
+const handleLoad = () => emit("load", panelNumber);
+const handleRemove = () => emit("remove", panelNumber);
+const handleClear = () => emit("clear", panelNumber);
 
 const getBadgeClass = (type: string): string => {
   const baseClass = "text-xs font-semibold px-2 py-1 rounded-sm";
@@ -71,11 +71,11 @@ const getBadgeClass = (type: string): string => {
 };
 
 const contextMenuItems = computed(() => {
-  const selectedCount = props.panelState.selectedItems.length;
+  const selectedCount = panelState.selectedItems.length;
   const hasSelection = selectedCount > 0;
   const transferLabel = hasSelection
-    ? `Transfer ${selectedCount} item${selectedCount > 1 ? "s" : ""} to ${props.panelNumber === 1 ? "Modified" : "Original"}`
-    : `Transfer to ${props.panelNumber === 1 ? "Modified" : "Original"}`;
+    ? `Transfer ${selectedCount} item${selectedCount > 1 ? "s" : ""} to ${panelNumber === 1 ? "Modified" : "Original"}`
+    : `Transfer to ${panelNumber === 1 ? "Modified" : "Original"}`;
 
   return [
     {
@@ -83,11 +83,11 @@ const contextMenuItems = computed(() => {
       icon: "fas fa-exchange-alt",
       command: () => {
         if (hasSelection) {
-          props.panelState.selectedItems.forEach((item) => {
-            emit("transfer", item, props.panelNumber);
+          panelState.selectedItems.forEach((item) => {
+            emit("transfer", item, panelNumber);
           });
         } else if (selectedItemForTransfer.value !== undefined) {
-          emit("transfer", selectedItemForTransfer.value, props.panelNumber);
+          emit("transfer", selectedItemForTransfer.value, panelNumber);
         }
       },
     },

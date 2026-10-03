@@ -12,7 +12,8 @@ type Props = {
   compareOptions: CompareOptions;
 };
 
-const props = defineProps<Props>();
+const { panel1State, panel2State, comparisonInProgress, compareOptions } =
+  defineProps<Props>();
 
 const emit = defineEmits<{
   "update:compareOptions": [value: CompareOptions];
@@ -23,28 +24,28 @@ const emit = defineEmits<{
 
 const canCompare = computed(() => {
   return (
-    !props.comparisonInProgress &&
-    props.panel1State.items.length > 0 &&
-    props.panel2State.items.length > 0 &&
-    props.panel1State.selectedItems.length === 1 &&
-    props.panel2State.selectedItems.length === 1
+    !comparisonInProgress &&
+    panel1State.items.length > 0 &&
+    panel2State.items.length > 0 &&
+    panel1State.selectedItems.length === 1 &&
+    panel2State.selectedItems.length === 1
   );
 });
 
 const ignoreWhitespace = computed({
-  get: () => props.compareOptions.ignoreWhitespace === true,
+  get: () => compareOptions.ignoreWhitespace === true,
   set: (v: boolean) =>
     emit("update:compareOptions", {
-      ...props.compareOptions,
+      ...compareOptions,
       ignoreWhitespace: v,
     }),
 });
 
 const ignoreCase = computed({
-  get: () => props.compareOptions.ignoreCase === true,
+  get: () => compareOptions.ignoreCase === true,
   set: (v: boolean) =>
     emit("update:compareOptions", {
-      ...props.compareOptions,
+      ...compareOptions,
       ignoreCase: v,
     }),
 });

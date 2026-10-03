@@ -178,11 +178,8 @@ const sendRowsToOriginal = async (
           targetUrl,
           originalRequest: fullRequest.request,
         });
-      } catch (error) {
-        console.warn(
-          "Compare: Skipping request in batch",
-          error instanceof Error ? error.message : String(error),
-        );
+      } catch {
+        continue;
       }
     }
 
@@ -291,11 +288,8 @@ const sendRowsToModified = async (
           targetUrl,
           originalRequest: fullRequest.request,
         });
-      } catch (error) {
-        console.warn(
-          "Compare: Skipping request in batch",
-          error instanceof Error ? error.message : String(error),
-        );
+      } catch {
+        continue;
       }
     }
 

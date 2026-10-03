@@ -9,9 +9,7 @@ interface Emits {
   (e: "switch-tab", tab: string): void;
 }
 
-withDefaults(defineProps<Props>(), {
-  currentTab: "compare",
-});
+const { currentTab = "compare" } = defineProps<Props>();
 
 const emit = defineEmits<Emits>();
 

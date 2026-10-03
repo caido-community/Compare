@@ -18,7 +18,7 @@ export function useTransfer(
   saveItemToBackend: SaveItemToBackendFn,
 ) {
   let batchTransferQueue: CompareItem[] = [];
-  let batchTransferTimeout: ReturnType<typeof setTimeout> | undefined;
+  let batchTransferTimeout: number | undefined;
   let currentTransferPanel: 1 | 2 | undefined;
 
   function handleTransfer(item: CompareItem, fromPanel: 1 | 2): void {
@@ -26,10 +26,10 @@ export function useTransfer(
     currentTransferPanel = fromPanel;
 
     if (batchTransferTimeout !== undefined) {
-      clearTimeout(batchTransferTimeout);
+      window.clearTimeout(batchTransferTimeout);
     }
 
-    batchTransferTimeout = setTimeout(() => {
+    batchTransferTimeout = window.setTimeout(() => {
       if (currentTransferPanel !== undefined) {
         void processBatchTransfer(currentTransferPanel);
       }
