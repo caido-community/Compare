@@ -23,7 +23,7 @@ import {
   NO_PROJECT_MESSAGE,
   UPLOAD_MISSING_MESSAGE,
 } from "./messages";
-import { buildProjectState } from "./project";
+import { buildItemState } from "./state";
 
 const UPLOAD_PATH = "/uploads/big.txt";
 
@@ -44,14 +44,15 @@ const readRequest: RequestReader = (requestId) => {
 const setup = async (options = { isProjectOpen: true }) => {
   const { fileSystem, store, migrate, now } = buildTestStorage();
   const changes = { count: 0 };
-  const project = buildProjectState({
+  const project = buildItemState({
     store,
     migrate,
+    now,
     notifyChange: () => {
       changes.count += 1;
     },
   });
-  const api = buildItemsApi({ project, store, fileSystem, readRequest, now });
+  const api = buildItemsApi({ state: project, fileSystem, readRequest });
   if (options.isProjectOpen) await project.open(TEST_PROJECT_ID);
 
   const listIds = async (panel: Panel) => {

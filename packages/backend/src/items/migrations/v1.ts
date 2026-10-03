@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { buildPath } from "../../runtime/fileSystem";
 import { readJsonDirectory } from "../../runtime/json";
-import { mapInOrder } from "../../runtime/sequence";
 import { idSchema, kindSchema } from "../schema";
 
 import { type MigrationContext } from "./types";
@@ -61,18 +60,25 @@ const copyV1Panel = async (
 
   const existingIds = new Set(existing.value.map((item) => item.id));
   const missing = v1Items.value.filter((item) => !existingIds.has(item.id));
-  const written = await mapInOrder(missing, (item) =>
-    context.store.writeItem(context.projectId, panel, item),
-  );
-  return written.kind === "Error" ? written : ok(written.value.length);
+  for (const item of missing) {
+    const written = await context.store.writeItem(
+      context.projectId,
+      panel,
+      item,
+    );
+    if (written.kind === "Error") return written;
+  }
+  return ok(missing.length);
 };
 
 export const fromV1 = async (
   context: MigrationContext,
 ): Promise<Result<number>> => {
-  const copied = await mapInOrder([...PANELS], (panel) =>
-    copyV1Panel(context, panel),
-  );
-  if (copied.kind === "Error") return copied;
-  return ok(copied.value.reduce((total, count) => total + count, 0));
+  let copied = 0;
+  for (const panel of PANELS) {
+    const result = await copyV1Panel(context, panel);
+    if (result.kind === "Error") return result;
+    copied += result.value;
+  }
+  return ok(copied);
 };

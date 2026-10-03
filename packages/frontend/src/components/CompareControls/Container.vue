@@ -1,0 +1,59 @@
+<script setup lang="ts">
+import Button from "primevue/button";
+
+import { LabeledCheckbox } from "@/components/LabeledCheckbox";
+import {
+  DIFF_MODE_DETAILS,
+  DIFF_OPTION_LABELS,
+  PRIMARY_DIFF_MODE,
+} from "@/constants";
+import { DIFF_MODES, type DiffMode } from "@/utils/diff";
+
+defineOptions({ name: "CompareControls" });
+
+const { canCompare, isComparing } = defineProps<{
+  canCompare: boolean;
+  isComparing: boolean;
+}>();
+
+const ignoreWhitespace = defineModel<boolean>("ignoreWhitespace", {
+  required: true,
+});
+const ignoreCase = defineModel<boolean>("ignoreCase", { required: true });
+
+const emit = defineEmits<{ compare: [mode: DiffMode]; cancel: [] }>();
+</script>
+
+<template>
+  <div class="flex flex-wrap items-center justify-center gap-4 py-3">
+    <Button
+      v-for="mode in DIFF_MODES"
+      :key="mode"
+      :label="DIFF_MODE_DETAILS[mode].buttonLabel"
+      :icon="DIFF_MODE_DETAILS[mode].icon"
+      :severity="mode === PRIMARY_DIFF_MODE ? undefined : 'secondary'"
+      :disabled="!canCompare"
+      class="min-w-32"
+      @click="emit('compare', mode)"
+    />
+    <div v-if="isComparing" class="flex items-center gap-2 text-sm">
+      <i class="fas fa-circle-notch fa-spin" />
+      <span>Comparing</span>
+      <Button
+        label="Cancel"
+        size="small"
+        severity="secondary"
+        outlined
+        @click="emit('cancel')"
+      />
+    </div>
+    <LabeledCheckbox
+      v-model="ignoreWhitespace"
+      :label="DIFF_OPTION_LABELS.ignoreWhitespace"
+    />
+    <LabeledCheckbox
+      v-model="ignoreCase"
+      :label="DIFF_OPTION_LABELS.ignoreCase"
+    />
+  </div>
+</template>

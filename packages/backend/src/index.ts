@@ -4,7 +4,7 @@ import type { Result, Spec } from "shared";
 import { buildItemsApi } from "./items/api";
 import { buildMigrator } from "./items/migrations";
 import { type MigrationOutcome } from "./items/migrations/types";
-import { buildProjectState } from "./items/project";
+import { buildItemState } from "./items/state";
 import { buildItemStore } from "./items/store";
 import { buildFileSystem, buildPath } from "./runtime/fileSystem";
 import { buildRequestReader } from "./runtime/requests";
@@ -33,18 +33,17 @@ export function init(sdk: SDK<Spec>) {
   const now = () => new Date().toISOString();
   const store = buildItemStore(fileSystem, root);
 
-  const project = buildProjectState({
+  const state = buildItemState({
     store,
     migrate: buildMigrator({ fileSystem, store, root, now }),
+    now,
     notifyChange: () => sdk.api.send("itemsChanged"),
   });
 
   const items = buildItemsApi({
-    project,
-    store,
+    state,
     fileSystem,
     readRequest: buildRequestReader(sdk),
-    now,
   });
 
   sdk.api.register("listItems", (_sdk, panel) => items.listItems(panel));
@@ -61,10 +60,10 @@ export function init(sdk: SDK<Spec>) {
 
   const switchProject = async (projectId: string | undefined) => {
     if (projectId === undefined) {
-      await project.close();
+      await state.close();
       return;
     }
-    reportOpened(sdk, await project.open(projectId));
+    reportOpened(sdk, await state.open(projectId));
   };
 
   let hasProjectChanged = false;

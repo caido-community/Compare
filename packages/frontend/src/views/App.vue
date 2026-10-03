@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import Button from "primevue/button";
 import MenuBar from "primevue/menubar";
+import { onMounted, ref } from "vue";
 
-import { useForm } from "./useForm";
+import { ComparePage } from "./Compare";
+import { DocsPage } from "./Docs";
 
-import { ComparePage } from "@/components/compare/ComparePage";
-import { DocsPage } from "@/components/docs/DocsPage";
-import { PLUGIN_NAME } from "@/presentation/plugin";
-import { type Services } from "@/services";
+import { PLUGIN_NAME } from "@/constants";
+import { useItemsStore } from "@/stores/items";
 
-defineOptions({ name: "App" });
+type Page = "Compare" | "Docs";
 
-const { services } = defineProps<{ services: Services }>();
+const PAGES: Page[] = ["Compare", "Docs"];
 
-const form = useForm();
+const page = ref<Page>("Compare");
+
+const itemsStore = useItemsStore();
+
+onMounted(() => itemsStore.initialize());
 </script>
 
 <template>
@@ -23,21 +27,21 @@ const form = useForm();
         <div class="flex items-center gap-2">
           <div class="px-2 font-bold text-surface-100">{{ PLUGIN_NAME }}</div>
           <Button
-            v-for="item in form.pages"
+            v-for="item in PAGES"
             :key="item"
             :label="item"
             size="small"
-            :severity="form.page.value === item ? 'secondary' : 'contrast'"
-            :outlined="form.page.value === item"
-            :text="form.page.value !== item"
-            @click="form.selectPage(item)"
+            :severity="page === item ? 'secondary' : 'contrast'"
+            :outlined="page === item"
+            :text="page !== item"
+            @click="page = item"
           />
         </div>
       </template>
     </MenuBar>
 
     <div class="flex-1 min-h-0">
-      <ComparePage v-if="form.page.value === 'Compare'" :services="services" />
+      <ComparePage v-if="page === 'Compare'" />
       <DocsPage v-else />
     </div>
   </div>
