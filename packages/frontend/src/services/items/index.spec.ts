@@ -1,22 +1,22 @@
 import { MAX_ITEM_BYTES } from "shared";
 import { describe, expect, it } from "vitest";
 
-import { chooseTransport } from "./index";
+import { chooseTransport, INLINE_LIMIT_BYTES } from "./index";
 
 describe("chooseTransport", () => {
-  it("sends small items directly", () => {
-    expect(chooseTransport(1024)).toBe("Inline");
+  it("sends items up to the inline limit directly", () => {
+    expect(chooseTransport(INLINE_LIMIT_BYTES)).toBe("Inline");
   });
 
-  it("uploads large items instead of sending them over the plugin connection", () => {
-    expect(chooseTransport(5 * 1024 * 1024)).toBe("Upload");
-  });
-
-  it("refuses items over the size limit", () => {
-    expect(chooseTransport(MAX_ITEM_BYTES + 1)).toBe("TooLarge");
+  it("uploads items above the inline limit", () => {
+    expect(chooseTransport(INLINE_LIMIT_BYTES + 1)).toBe("Upload");
   });
 
   it("accepts an item exactly at the size limit", () => {
     expect(chooseTransport(MAX_ITEM_BYTES)).toBe("Upload");
+  });
+
+  it("refuses items over the size limit", () => {
+    expect(chooseTransport(MAX_ITEM_BYTES + 1)).toBe("TooLarge");
   });
 });

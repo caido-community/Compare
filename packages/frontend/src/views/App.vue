@@ -6,7 +6,7 @@ import { useForm } from "./useForm";
 
 import { ComparePage } from "@/components/compare/ComparePage";
 import { DocsPage } from "@/components/docs/DocsPage";
-import { PLUGIN_NAME } from "@/core/plugin";
+import { PLUGIN_NAME } from "@/presentation/plugin";
 import { type Services } from "@/services";
 
 defineOptions({ name: "App" });

@@ -3,17 +3,20 @@ import { z } from "zod";
 
 import { buildPath } from "../../runtime/fileSystem";
 import { readJsonDirectory } from "../../runtime/json";
-import { kindSchema } from "../schema";
+import { mapInOrder } from "../../runtime/sequence";
+import { idSchema, kindSchema } from "../schema";
 
-import { type MigrationContext } from "./index";
+import { type MigrationContext } from "./types";
 
 const V1_DIRECTORIES: Record<Panel, string> = {
   original: "panel1",
   modified: "panel2",
 };
 
+const V1_UNKNOWN_SOURCE = "Imported from an earlier version";
+
 const v1ItemSchema = z.object({
-  id: z.number().int().positive(),
+  id: idSchema,
   type: kindSchema,
   data: z.string(),
   source: z.string().optional(),
@@ -25,7 +28,7 @@ type V1Item = z.infer<typeof v1ItemSchema>;
 const buildItem = (v1: V1Item, now: string): CompareItem => ({
   id: v1.id,
   kind: v1.type,
-  source: v1.source ?? v1.type,
+  source: v1.source ?? V1_UNKNOWN_SOURCE,
   data: v1.data,
   createdAt: v1.timestamp ?? now,
 });
@@ -58,26 +61,18 @@ const copyV1Panel = async (
 
   const existingIds = new Set(existing.value.map((item) => item.id));
   const missing = v1Items.value.filter((item) => !existingIds.has(item.id));
-  for (const item of missing) {
-    const written = await context.store.writeItem(
-      context.projectId,
-      panel,
-      item,
-    );
-    if (written.kind === "Error") return written;
-  }
-
-  return ok(missing.length);
+  const written = await mapInOrder(missing, (item) =>
+    context.store.writeItem(context.projectId, panel, item),
+  );
+  return written.kind === "Error" ? written : ok(written.value.length);
 };
 
 export const fromV1 = async (
   context: MigrationContext,
 ): Promise<Result<number>> => {
-  let copied = 0;
-  for (const panel of PANELS) {
-    const result = await copyV1Panel(context, panel);
-    if (result.kind === "Error") return result;
-    copied += result.value;
-  }
-  return ok(copied);
+  const copied = await mapInOrder([...PANELS], (panel) =>
+    copyV1Panel(context, panel),
+  );
+  if (copied.kind === "Error") return copied;
+  return ok(copied.value.reduce((total, count) => total + count, 0));
 };

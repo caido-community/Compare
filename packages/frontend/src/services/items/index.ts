@@ -31,7 +31,7 @@ export type ItemService = {
   onItemsChanged: (listener: () => void) => () => void;
 };
 
-const INLINE_LIMIT_BYTES = 256 * 1024;
+export const INLINE_LIMIT_BYTES = 256 * 1024;
 
 const UPLOADED_TEXT_NAME = "compare-item.txt";
 
@@ -46,11 +46,11 @@ export const buildItemService = (sdk: FrontendSDK): ItemService => {
       callBackend(() => sdk.backend.addFileItem({ ...target, path })),
     );
 
-  const addItem = (input: AddItemInput): Promise<Result<CompareItem>> => {
+  const addItem = async (input: AddItemInput): Promise<Result<CompareItem>> => {
     const { data, ...target } = input;
     switch (chooseTransport(measureBytes(data))) {
       case "TooLarge":
-        return Promise.resolve(err(ITEM_TOO_LARGE_MESSAGE));
+        return err(ITEM_TOO_LARGE_MESSAGE);
       case "Inline":
         return callBackend(() => sdk.backend.addItem(input));
       case "Upload":

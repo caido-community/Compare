@@ -6,34 +6,18 @@ import {
   PANELS,
 } from "shared";
 
-import { getSendLabel, PANEL_TITLES } from "@/core/panels";
-import { PLUGIN_ICON } from "@/core/plugin";
+import { buildUrl } from "@/core/url";
+import { PANEL_TITLES, SEND_LABELS } from "@/presentation/panels";
+import { PLUGIN_ICON } from "@/presentation/plugin";
 import { type Services } from "@/services";
-import { type ItemService } from "@/services/items";
 import { type FrontendSDK } from "@/types";
 
-type Endpoint = {
-  host: string;
-  port: number;
-  path: string;
-  query: string;
-  isTls: boolean;
-};
-
-export type SendRequest =
+type SendRequest =
   | { kind: "Item"; input: AddItemInput }
   | { kind: "Requests"; input: AddRequestsInput }
   | { kind: "None" };
 
 const MENU_TYPES = ["Request", "RequestRow", "Response"] as const;
-
-export const buildUrl = (endpoint: Endpoint): string => {
-  const scheme = endpoint.isTls ? "https" : "http";
-  const isDefaultPort = endpoint.port === (endpoint.isTls ? 443 : 80);
-  const port = isDefaultPort ? "" : `:${endpoint.port}`;
-  const query = endpoint.query === "" ? "" : `?${endpoint.query}`;
-  return `${scheme}://${endpoint.host}${port}${endpoint.path}${query}`;
-};
 
 export const buildSendRequest = (
   panel: Panel,
@@ -70,33 +54,29 @@ export const buildSendRequest = (
   }
 };
 
-const sendToBackend = (items: ItemService, request: SendRequest) => {
-  switch (request.kind) {
-    case "Requests":
-      return items.addRequests(request.input);
-    case "Item":
-      return items.addItem(request.input);
-    case "None":
-      return undefined;
-  }
-};
+const send = (
+  services: Services,
+  request: Exclude<SendRequest, { kind: "None" }>,
+) =>
+  request.kind === "Requests"
+    ? services.items.addRequests(request.input)
+    : services.items.addItem(request.input);
 
 const registerPanelCommand = (
   sdk: FrontendSDK,
   services: Services,
   panel: Panel,
 ) => {
-  const id = `compare.send-to-${panel}`;
+  const id = `${__PLUGIN_ID__}.send-to-${panel}`;
   const title = PANEL_TITLES[panel];
 
   sdk.commands.register(id, {
-    name: getSendLabel(panel),
+    name: SEND_LABELS[panel],
     run: async (context) => {
-      const sent = await sendToBackend(
-        services.items,
-        buildSendRequest(panel, context),
-      );
-      if (sent === undefined) return;
+      const request = buildSendRequest(panel, context);
+      if (request.kind === "None") return;
+
+      const sent = await send(services, request);
       if (sent.kind === "Error") {
         services.notifications.showError(
           `Unable to send to ${title}: ${sent.error}`,
@@ -108,11 +88,7 @@ const registerPanelCommand = (
   });
 
   for (const type of MENU_TYPES) {
-    sdk.menu.registerItem({
-      type,
-      commandId: id,
-      leadingIcon: PLUGIN_ICON,
-    });
+    sdk.menu.registerItem({ type, commandId: id, leadingIcon: PLUGIN_ICON });
   }
 };
 

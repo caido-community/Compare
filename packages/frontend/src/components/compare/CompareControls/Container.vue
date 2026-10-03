@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
 
+import { LabeledCheckbox } from "@/components/common/LabeledCheckbox";
+import { DIFF_MODES, type DiffMode } from "@/core/diff";
 import {
   DIFF_MODE_DETAILS,
   DIFF_OPTION_LABELS,
   PRIMARY_DIFF_MODE,
-} from "@/components/common/diffPresentation";
-import { DIFF_MODES, type DiffMode } from "@/core/diff";
+} from "@/presentation/diff";
 
 defineOptions({ name: "CompareControls" });
 
@@ -47,13 +47,13 @@ const emit = defineEmits<{ compare: [mode: DiffMode]; cancel: [] }>();
         @click="emit('cancel')"
       />
     </div>
-    <label class="flex items-center gap-2 text-sm">
-      <Checkbox v-model="ignoreWhitespace" binary />
-      {{ DIFF_OPTION_LABELS.ignoreWhitespace }}
-    </label>
-    <label class="flex items-center gap-2 text-sm">
-      <Checkbox v-model="ignoreCase" binary />
-      {{ DIFF_OPTION_LABELS.ignoreCase }}
-    </label>
+    <LabeledCheckbox
+      v-model="ignoreWhitespace"
+      :label="DIFF_OPTION_LABELS.ignoreWhitespace"
+    />
+    <LabeledCheckbox
+      v-model="ignoreCase"
+      :label="DIFF_OPTION_LABELS.ignoreCase"
+    />
   </div>
 </template>

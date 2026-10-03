@@ -4,23 +4,26 @@ import { describe, expect, it } from "vitest";
 
 import { useForm } from "./useForm";
 
-import { type DiffInput, type DiffResult } from "@/core/diff";
+import {
+  DEFAULT_DIFF_OPTIONS,
+  type DiffInput,
+  type DiffResult,
+} from "@/core/diff";
 import { type Services } from "@/services";
 import { type DiffRun } from "@/services/diff";
-import { buildItem, buildItemServiceDouble } from "@/tests/fixtures";
+import {
+  buildDiffResult,
+  buildItem,
+  buildItemServiceDouble,
+  buildNotificationDouble,
+} from "@/tests/fixtures";
 import { mountComposable } from "@/tests/mountComposable";
 
-const RESULT: DiffResult = {
-  mode: "words",
-  rows: [],
-  summary: { added: 0, deleted: 0, modified: 0, unchanged: 0 },
-  isAlignmentComplete: true,
-  isHighlightingComplete: true,
-};
+const RESULT = buildDiffResult();
 
-const buildServices = () => {
+const buildServicesDouble = () => {
   const inputs: DiffInput[] = [];
-  const errors: string[] = [];
+  const { notifications, errors } = buildNotificationDouble();
   const pending: Array<(outcome: Result<DiffResult>) => void> = [];
   const cancelled = { count: 0 };
 
@@ -35,14 +38,8 @@ const buildServices = () => {
   };
 
   const services: Services = {
-    items: buildItemServiceDouble({
-      listItems: (panel) =>
-        Promise.resolve(ok([buildItem(panel === "original" ? 1 : 2, panel)])),
-    }),
-    notifications: {
-      showSuccess: () => undefined,
-      showError: (message) => errors.push(message),
-    },
+    items: buildItemServiceDouble(),
+    notifications,
     runDiff,
   };
 
@@ -51,10 +48,10 @@ const buildServices = () => {
 };
 
 const mountReadyForm = async () => {
-  const doubles = buildServices();
+  const doubles = buildServicesDouble();
   const form = await mountComposable(() => useForm(doubles.services));
-  form.original.select([buildItem(1, "left")]);
-  form.modified.select([buildItem(2, "right")]);
+  form.originalSelection.value = [buildItem(1, "left")];
+  form.modifiedSelection.value = [buildItem(2, "right")];
   return { form, ...doubles };
 };
 
@@ -70,7 +67,7 @@ describe("comparing the selected items", () => {
         original: "left",
         modified: "right",
         mode: "bytes",
-        options: { ignoreWhitespace: false, ignoreCase: true },
+        options: { ...DEFAULT_DIFF_OPTIONS, ignoreCase: true },
       },
     ]);
   });

@@ -3,23 +3,21 @@ import Button from "primevue/button";
 import Column from "primevue/column";
 import ContextMenu from "primevue/contextmenu";
 import DataTable from "primevue/datatable";
+import { type CompareItem, type Panel } from "shared";
 
 import { useForm } from "./useForm";
-import { type PanelForm } from "./usePanel";
 
-import {
-  formatLength,
-  formatTime,
-  getPreview,
-} from "@/components/common/itemFormat";
 import { ItemKindTag } from "@/components/common/ItemKindTag";
-import { PANEL_ACTION_LABELS } from "@/core/panels";
+import { formatLength } from "@/presentation/format";
+import { type Services } from "@/services";
 
 defineOptions({ name: "ItemPanel" });
 
-const { panel } = defineProps<{ panel: PanelForm }>();
+const { panel, services } = defineProps<{ panel: Panel; services: Services }>();
 
-const form = useForm(panel);
+const selected = defineModel<CompareItem[]>("selected", { required: true });
+
+const form = useForm({ panel, services, selected });
 </script>
 
 <template>
@@ -29,37 +27,17 @@ const form = useForm(panel);
     <div
       class="flex items-center justify-between gap-2 px-3 py-2 border-b border-surface-700"
     >
-      <span class="font-semibold text-white">{{ panel.title }}</span>
+      <span class="font-semibold text-surface-0">{{ form.title }}</span>
       <div class="flex gap-2">
         <Button
-          :label="PANEL_ACTION_LABELS.paste"
-          icon="fas fa-paste"
+          v-for="action in form.toolbar.value"
+          :key="action.label"
+          :label="action.label"
+          :icon="action.icon"
+          :severity="action.severity"
           size="small"
-          :disabled="panel.isBusy.value"
-          @click="panel.pasteClipboard"
-        />
-        <Button
-          :label="PANEL_ACTION_LABELS.load"
-          icon="fas fa-folder-open"
-          size="small"
-          :disabled="panel.isBusy.value"
-          @click="form.chooseFile"
-        />
-        <Button
-          :label="PANEL_ACTION_LABELS.remove"
-          icon="fas fa-trash"
-          severity="danger"
-          size="small"
-          :disabled="panel.isBusy.value || panel.selected.value.length === 0"
-          @click="panel.removeSelected"
-        />
-        <Button
-          :label="PANEL_ACTION_LABELS.clear"
-          icon="fas fa-times"
-          severity="secondary"
-          size="small"
-          :disabled="panel.isBusy.value || panel.items.value.length === 0"
-          @click="panel.clear"
+          :disabled="action.isDisabled"
+          @click="action.run"
         />
       </div>
       <input
@@ -72,8 +50,8 @@ const form = useForm(panel);
 
     <div class="flex-1 min-h-0">
       <DataTable
-        :value="panel.items.value"
-        :selection="panel.selected.value"
+        v-model:selection="selected"
+        :value="form.items.value"
         selection-mode="multiple"
         :meta-key-selection="false"
         data-key="id"
@@ -81,34 +59,33 @@ const form = useForm(panel);
         scrollable
         scroll-height="flex"
         class="h-full text-sm"
-        :loading="panel.isBusy.value"
-        @update:selection="panel.select"
+        :loading="form.isBusy.value"
         @row-contextmenu="form.openMenu"
       >
-        <Column selection-mode="multiple" header-style="width: 3rem" />
-        <Column field="id" header="ID" sortable header-style="width: 4rem" />
-        <Column header="Length" header-style="width: 6rem">
+        <Column selection-mode="multiple" header-class="w-12" />
+        <Column field="id" header="ID" sortable header-class="w-16" />
+        <Column header="Length" header-class="w-24">
           <template #body="{ data }">
-            <span class="font-mono text-xs">
-              {{ formatLength(data) }}
-            </span>
+            <span class="font-mono text-xs">{{ formatLength(data) }}</span>
           </template>
         </Column>
         <Column header="Data">
           <template #body="{ data }">
             <div class="font-mono text-xs text-surface-300 truncate max-w-48">
-              {{ getPreview(data) }}
+              {{ form.getPreview(data) }}
             </div>
           </template>
         </Column>
-        <Column field="kind" header="Type" sortable header-style="width: 7rem">
+        <Column field="kind" header="Type" sortable header-class="w-28">
           <template #body="{ data }">
             <ItemKindTag :kind="data.kind" />
           </template>
         </Column>
-        <Column header="Time" header-style="width: 8rem">
+        <Column header="Time" header-class="w-32">
           <template #body="{ data }">
-            <span class="text-xs text-surface-400">{{ formatTime(data) }}</span>
+            <span class="text-xs text-surface-400">
+              {{ form.formatTime(data) }}
+            </span>
           </template>
         </Column>
       </DataTable>

@@ -1,38 +1,26 @@
 import { err, ok, type Result } from "shared";
 import { z } from "zod";
 
-import { buildPath, type FileSystem } from "../../runtime/fileSystem";
+import { buildPath } from "../../runtime/fileSystem";
 import { formatJson, readJsonFile } from "../../runtime/json";
-import { type ItemStore } from "../store";
+import { CORRUPT_VERSION_MESSAGE } from "../messages";
 
+import {
+  type Migration,
+  type MigrationContext,
+  type MigrationOutcome,
+} from "./types";
 import { fromV1 } from "./v1";
 
-export type MigrationContext = {
-  fileSystem: FileSystem;
-  store: ItemStore;
-  root: string;
-  projectId: string;
-  now: () => string;
-};
-
-export type MigrationOutcome = {
-  from: number;
-  to: number;
-  copiedItems: number;
-};
-
-type Migration = {
-  from: number;
-  run: (context: MigrationContext) => Promise<Result<number>>;
-};
+const FIRST_VERSION = 1;
 
 const CURRENT_VERSION = 2;
 
 const MIGRATIONS: Migration[] = [{ from: 1, run: fromV1 }];
 
-const versionPath = (root: string) => buildPath(root, "version.json");
+const versionFileSchema = z.object({ version: z.number().int().positive() });
 
-const versionFileSchema = z.object({ version: z.number().int() });
+const versionPath = (root: string) => buildPath(root, "version.json");
 
 const readVersion = async (
   context: MigrationContext,
@@ -42,17 +30,17 @@ const readVersion = async (
     versionPath(context.root),
   );
   if (read.kind === "Error") return read;
+  if (read.value.kind === "Missing") return ok(FIRST_VERSION);
+  if (read.value.kind === "Invalid") return err(CORRUPT_VERSION_MESSAGE);
 
-  const parsed = versionFileSchema.safeParse(read.value);
-  if (!parsed.success) return ok(1);
-
-  const { version } = parsed.data;
-  if (version > CURRENT_VERSION) {
+  const parsed = versionFileSchema.safeParse(read.value.value);
+  if (!parsed.success) return err(CORRUPT_VERSION_MESSAGE);
+  if (parsed.data.version > CURRENT_VERSION) {
     return err(
-      `The stored items were written by a newer version of Compare (format ${version}). Update the plugin to read them.`,
+      `The stored items were written by a newer version of Compare (format ${parsed.data.version}). Update the plugin to read them.`,
     );
   }
-  return ok(version);
+  return ok(parsed.data.version);
 };
 
 const writeVersion = async (
@@ -68,7 +56,20 @@ const writeVersion = async (
   return ok(CURRENT_VERSION);
 };
 
-export const migrateStorage = async (
+const runMigrations = async (
+  context: MigrationContext,
+  from: number,
+): Promise<Result<number>> => {
+  let copiedItems = 0;
+  for (const migration of MIGRATIONS.filter((step) => step.from >= from)) {
+    const migrated = await migration.run(context);
+    if (migrated.kind === "Error") return migrated;
+    copiedItems += migrated.value;
+  }
+  return ok(copiedItems);
+};
+
+const migrateStorage = async (
   context: MigrationContext,
 ): Promise<Result<MigrationOutcome>> => {
   const version = await readVersion(context);
@@ -79,14 +80,14 @@ export const migrateStorage = async (
     return ok({ from, to: CURRENT_VERSION, copiedItems: 0 });
   }
 
-  let copiedItems = 0;
-  for (const migration of MIGRATIONS.filter((step) => step.from >= from)) {
-    const migrated = await migration.run(context);
-    if (migrated.kind === "Error") return migrated;
-    copiedItems += migrated.value;
-  }
+  const copied = await runMigrations(context, from);
+  if (copied.kind === "Error") return copied;
 
   const written = await writeVersion(context);
   if (written.kind === "Error") return written;
-  return ok({ from, to: CURRENT_VERSION, copiedItems });
+  return ok({ from, to: CURRENT_VERSION, copiedItems: copied.value });
 };
+
+export const buildMigrator =
+  (context: Omit<MigrationContext, "projectId">) => (projectId: string) =>
+    migrateStorage({ ...context, projectId });

@@ -2,10 +2,10 @@ import { type CompareItem, err, ok, type Panel, type Result } from "shared";
 
 import { buildMutex } from "../runtime/mutex";
 
-import { type MigrationOutcome } from "./migrations";
+import { NO_PROJECT_MESSAGE } from "./messages";
+import { type MigrationOutcome } from "./migrations/types";
+import { hasSameItems, type Panels } from "./panels";
 import { type ItemStore } from "./store";
-
-export type Panels = Record<Panel, CompareItem[]>;
 
 export type OpenProject = { id: string; panels: Panels };
 
@@ -20,22 +20,6 @@ export type ProjectState = {
   mutate: <T>(
     operation: (project: OpenProject) => Promise<Mutation<T>>,
   ) => Promise<Result<T>>;
-};
-
-const NO_PROJECT = "Open a project to use Compare.";
-
-export const withPanel = (
-  panels: Panels,
-  panel: Panel,
-  items: CompareItem[],
-): Panels =>
-  panel === "original"
-    ? { ...panels, original: items }
-    : { ...panels, modified: items };
-
-export const getNextId = (panels: Panels): number => {
-  const ids = [...panels.original, ...panels.modified].map((item) => item.id);
-  return Math.max(0, ...ids) + 1;
 };
 
 export const buildProjectState = (deps: {
@@ -95,19 +79,18 @@ export const buildProjectState = (deps: {
   const mutate = async <T>(
     operation: (project: OpenProject) => Promise<Mutation<T>>,
   ): Promise<Result<T>> => {
-    if (current === undefined) return err(NO_PROJECT);
+    if (current === undefined) return err(NO_PROJECT_MESSAGE);
 
     const project = current;
     const { panels, result } = await operation(project);
-    commit({ ...project, panels });
+    if (!hasSameItems(project.panels, panels)) commit({ ...project, panels });
     return result;
   };
 
   return {
-    open: (projectId: string) => serialise(() => openProject(projectId)),
+    open: (projectId) => serialise(() => openProject(projectId)),
     close: () => serialise(closeProject),
-    readPanel: (panel: Panel) => serialise(() => readPanel(panel)),
-    mutate: <T>(operation: (project: OpenProject) => Promise<Mutation<T>>) =>
-      serialise(() => mutate(operation)),
+    readPanel: (panel) => serialise(() => readPanel(panel)),
+    mutate: (operation) => serialise(() => mutate(operation)),
   };
 };

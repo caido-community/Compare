@@ -1,3 +1,5 @@
+import { measureBytes } from "shared";
+
 import { type FileSystem } from "../runtime/fileSystem";
 
 export type MemoryFileSystem = FileSystem & {
@@ -32,6 +34,16 @@ export const buildMemoryFileSystem = (): MemoryFileSystem => {
         content === undefined
           ? { kind: "Missing" as const }
           : { kind: "Found" as const, content },
+      );
+    },
+
+    readFileSize: (path) => {
+      if (failing.has(path)) return Promise.resolve(FAILED);
+      const content = files.get(path);
+      return Promise.resolve(
+        content === undefined
+          ? { kind: "Missing" as const }
+          : { kind: "Found" as const, bytes: measureBytes(content) },
       );
     },
 

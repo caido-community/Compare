@@ -8,13 +8,24 @@ import {
 } from "shared";
 import { describe, expect, it } from "vitest";
 
-import { FIXED_TIME, TEST_ROOT } from "../tests/fixtures";
-import { buildMemoryFileSystem } from "../tests/memoryFileSystem";
+import { type RequestReader } from "../runtime/requests";
+import {
+  buildItemPath,
+  FIXED_TIME,
+  OTHER_PROJECT_ID,
+  TEST_PROJECT_ID,
+} from "../tests/fixtures";
+import { buildTestStorage } from "../tests/storage";
 
-import { buildItemsApi, type RequestReader } from "./api";
-import { migrateStorage } from "./migrations";
+import { buildItemsApi } from "./api";
+import {
+  EMPTY_ITEM_MESSAGE,
+  NO_PROJECT_MESSAGE,
+  UPLOAD_MISSING_MESSAGE,
+} from "./messages";
 import { buildProjectState } from "./project";
-import { buildItemStore } from "./store";
+
+const UPLOAD_PATH = "/uploads/big.txt";
 
 const REQUESTS: Record<string, { source: string; data: string }> = {
   "1": { source: "https://example.com/a", data: "GET /a HTTP/1.1" },
@@ -31,32 +42,17 @@ const readRequest: RequestReader = (requestId) => {
 };
 
 const setup = async (options = { isProjectOpen: true }) => {
-  const fileSystem = buildMemoryFileSystem();
-  const store = buildItemStore(fileSystem, TEST_ROOT);
+  const { fileSystem, store, migrate, now } = buildTestStorage();
   const changes = { count: 0 };
-  const now = () => FIXED_TIME;
   const project = buildProjectState({
     store,
-    migrate: (id) =>
-      migrateStorage({
-        fileSystem,
-        store,
-        root: TEST_ROOT,
-        projectId: id,
-        now,
-      }),
+    migrate,
     notifyChange: () => {
       changes.count += 1;
     },
   });
-  const api = buildItemsApi({
-    project,
-    store,
-    fileSystem,
-    readRequest,
-    now,
-  });
-  if (options.isProjectOpen) await project.open("project-a");
+  const api = buildItemsApi({ project, store, fileSystem, readRequest, now });
+  if (options.isProjectOpen) await project.open(TEST_PROJECT_ID);
 
   const listIds = async (panel: Panel) => {
     const listed = await api.listItems(panel);
@@ -101,18 +97,29 @@ describe("adding items", () => {
     expect(await listIds("modified")).toEqual([2]);
   });
 
+  it("accepts a source of any length", async () => {
+    const { api } = await setup();
+
+    const added = await api.addItem({
+      panel: "original",
+      kind: "request",
+      source: `https://example.com/?token=${"a".repeat(5000)}`,
+      data: "GET / HTTP/1.1",
+    });
+
+    expect(added.kind).toBe("Ok");
+  });
+
   it("rejects empty data", async () => {
     const { addText } = await setup();
 
-    expect(await addText("original", "")).toEqual(err("The item is empty."));
+    expect(await addText("original", "")).toEqual(err(EMPTY_ITEM_MESSAGE));
   });
 
   it("refuses to add while no project is open", async () => {
     const { addText, listIds } = await setup({ isProjectOpen: false });
 
-    expect(await addText("original", "data")).toEqual(
-      err("Open a project to use Compare."),
-    );
+    expect(await addText("original", "data")).toEqual(err(NO_PROJECT_MESSAGE));
     expect(await listIds("original")).toEqual([]);
   });
 
@@ -124,18 +131,27 @@ describe("adding items", () => {
 
     expect(changes.count).toBe(before + 1);
   });
+
+  it("stays quiet when nothing changed", async () => {
+    const { api, changes } = await setup();
+    const before = changes.count;
+
+    await api.removeItems({ panel: "original", ids: [42] });
+
+    expect(changes.count).toBe(before);
+  });
 });
 
 describe("adding uploaded files", () => {
   it("reads the uploaded file and stores its content", async () => {
     const { api, fileSystem } = await setup();
-    fileSystem.files.set("/uploads/big.txt", "uploaded content");
+    fileSystem.files.set(UPLOAD_PATH, "uploaded content");
 
     const added = await api.addFileItem({
       panel: "original",
       kind: "file",
       source: "big.txt",
-      path: "/uploads/big.txt",
+      path: UPLOAD_PATH,
     });
 
     expect(added.kind === "Ok" && added.value.data).toBe("uploaded content");
@@ -148,10 +164,10 @@ describe("adding uploaded files", () => {
       panel: "original",
       kind: "file",
       source: "gone.txt",
-      path: "/uploads/gone.txt",
+      path: UPLOAD_PATH,
     });
 
-    expect(added).toEqual(err("The uploaded file no longer exists."));
+    expect(added).toEqual(err(UPLOAD_MISSING_MESSAGE));
   });
 });
 
@@ -163,6 +179,20 @@ describe("the size limit", () => {
     expect(await addText("original", twoByteCharacters)).toEqual(
       err(ITEM_TOO_LARGE_MESSAGE),
     );
+  });
+
+  it("rejects an oversized upload before reading it", async () => {
+    const { api, fileSystem } = await setup();
+    fileSystem.files.set(UPLOAD_PATH, "a".repeat(MAX_ITEM_BYTES + 1));
+
+    const added = await api.addFileItem({
+      panel: "original",
+      kind: "file",
+      source: "big.txt",
+      path: UPLOAD_PATH,
+    });
+
+    expect(added).toEqual(err(ITEM_TOO_LARGE_MESSAGE));
   });
 });
 
@@ -216,6 +246,15 @@ describe("removing, moving, and clearing", () => {
     expect(await listIds("original")).toEqual([2]);
   });
 
+  it("only reports items that were actually removed", async () => {
+    const { api, addText } = await setup();
+    await addText("original", "one");
+
+    const removed = await api.removeItems({ panel: "original", ids: [1, 42] });
+
+    expect(removed).toEqual(ok([1]));
+  });
+
   it("moves items to the other panel and keeps their ids", async () => {
     const { api, addText, listIds, fileSystem } = await setup();
     await addText("original", "one");
@@ -226,20 +265,30 @@ describe("removing, moving, and clearing", () => {
 
     expect(await listIds("original")).toEqual([]);
     expect(await listIds("modified")).toEqual([1, 2, 3]);
-    expect(
-      fileSystem.files.has(`${TEST_ROOT}/projects/project-a/original/1.json`),
-    ).toBe(false);
+    expect(fileSystem.files.has(buildItemPath("original", 1))).toBe(false);
   });
 
-  it("keeps an item in place when its move fails", async () => {
+  it("keeps an item in place when writing its copy fails", async () => {
     const { api, addText, listIds, fileSystem } = await setup();
     await addText("original", "one");
-    fileSystem.failing.add(`${TEST_ROOT}/projects/project-a/modified/1.json`);
+    fileSystem.failing.add(buildItemPath("modified", 1));
 
     const moved = await api.moveItems({ panel: "original", ids: [1] });
 
     expect(moved.kind).toBe("Error");
     expect(await listIds("original")).toEqual([1]);
+  });
+
+  it("removes the copy when the original cannot be removed", async () => {
+    const { api, addText, listIds, fileSystem } = await setup();
+    await addText("original", "one");
+    fileSystem.failing.add(buildItemPath("original", 1));
+
+    const moved = await api.moveItems({ panel: "original", ids: [1] });
+
+    expect(moved.kind).toBe("Error");
+    expect(await listIds("modified")).toEqual([]);
+    expect(fileSystem.files.has(buildItemPath("modified", 1))).toBe(false);
   });
 
   it("clears one panel only", async () => {
@@ -259,10 +308,10 @@ describe("switching projects", () => {
     const { project, addText, listIds } = await setup();
     await addText("original", "in a");
 
-    await project.open("project-b");
+    await project.open(OTHER_PROJECT_ID);
     expect(await listIds("original")).toEqual([]);
 
-    await project.open("project-a");
+    await project.open(TEST_PROJECT_ID);
     expect(await listIds("original")).toEqual([1]);
   });
 
@@ -270,7 +319,7 @@ describe("switching projects", () => {
     const { project, addText, listIds } = await setup();
     await addText("original", "one");
 
-    await project.open("project-a");
+    await project.open(TEST_PROJECT_ID);
     await addText("original", "two");
 
     expect(await listIds("original")).toEqual([1, 2]);
@@ -281,7 +330,7 @@ describe("switching projects", () => {
     await addText("original", "one");
     await project.close();
 
-    const opening = project.open("project-a");
+    const opening = project.open(TEST_PROJECT_ID);
     const listed = listIds("original");
     await opening;
 

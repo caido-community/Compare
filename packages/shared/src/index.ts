@@ -22,6 +22,7 @@ export {
   ITEM_TOO_LARGE_MESSAGE,
   type ItemKind,
   type ItemSelection,
+  mapPanels,
   MAX_ITEM_BYTES,
   MAX_ITEM_MEGABYTES,
   MAX_REQUESTS_PER_ADD,

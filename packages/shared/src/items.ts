@@ -48,3 +48,8 @@ export type ItemSelection = {
 
 export const getOtherPanel = (panel: Panel): Panel =>
   panel === "original" ? "modified" : "original";
+
+export const mapPanels = <T>(build: (panel: Panel) => T): Record<Panel, T> => ({
+  original: build("original"),
+  modified: build("modified"),
+});

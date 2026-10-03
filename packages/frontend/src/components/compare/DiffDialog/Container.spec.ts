@@ -6,18 +6,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import DiffDialog from "./Container.vue";
 import { type DiffView } from "./useForm";
 
-import { compareTexts } from "@/core/diff";
-import { buildItem } from "@/tests/fixtures";
+import { VIEW_OPTION_LABELS } from "@/presentation/diff";
+import { buildDiffResult, buildItem } from "@/tests/fixtures";
 
 const buildView = (original: string, modified: string): DiffView => ({
   original: buildItem(1, original),
   modified: buildItem(2, modified),
-  result: compareTexts({
-    original,
-    modified,
-    mode: "words",
-    options: { ignoreWhitespace: false, ignoreCase: false },
-  }),
+  result: buildDiffResult(original, modified),
 });
 
 afterEach(() => {
@@ -64,9 +59,11 @@ describe("opening a comparison", () => {
 
   it("switches line wrapping off without an update loop", async () => {
     const { errors } = await mountDialog(buildView("a\nb", "a\nc"));
-    const wrap = document.body.querySelector<HTMLInputElement>(
-      "input[type=checkbox]",
+    const wrapLabel = Array.from(document.body.querySelectorAll("label")).find(
+      (label) =>
+        (label.textContent ?? "").includes(VIEW_OPTION_LABELS.isWrapped),
     );
+    const wrap = wrapLabel?.querySelector("input");
 
     wrap?.click();
     await flushPromises();

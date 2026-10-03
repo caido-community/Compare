@@ -1,7 +1,11 @@
 import type { SDK } from "caido:plugin";
-import { err, ok, type Spec } from "shared";
+import { err, ok, type Result, type Spec } from "shared";
 
-import { type RequestReader } from "../items/api";
+type RequestContent = { source: string; data: string };
+
+export type RequestReader = (
+  requestId: string,
+) => Promise<Result<RequestContent>>;
 
 export const buildRequestReader =
   (sdk: SDK<Spec>): RequestReader =>
@@ -11,6 +15,8 @@ export const buildRequestReader =
       return err(`Request ${requestId} no longer exists in this project.`);
     }
 
-    const { request } = found;
-    return ok({ source: request.getUrl(), data: request.getRaw().toText() });
+    return ok({
+      source: found.request.getUrl(),
+      data: found.request.getRaw().toText(),
+    });
   };

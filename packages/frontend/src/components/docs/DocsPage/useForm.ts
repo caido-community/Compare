@@ -1,31 +1,26 @@
 import { ref, useTemplateRef } from "vue";
 
-const SECTIONS = [
-  { id: "what-is-compare", title: "What is Compare?" },
-  { id: "quick-start", title: "Quick Start" },
-  { id: "data-input", title: "Data Input Methods" },
-  { id: "comparison-types", title: "Comparison Types" },
-  { id: "panel-management", title: "Panel Management" },
-  { id: "http-history", title: "HTTP History Integration" },
-  { id: "about", title: "About" },
-] as const;
-
-type SectionId = (typeof SECTIONS)[number]["id"];
+import { type SectionId, SECTIONS } from "./content";
 
 const ACTIVE_OFFSET = 200;
 
+const SCROLL_MARGIN = 20;
+
+const FIRST_SECTION_ID: SectionId = SECTIONS[0].id;
+
 export const useForm = () => {
   const content = useTemplateRef<HTMLElement>("content");
-  const activeSection = ref<SectionId>("what-is-compare");
+  const activeSection = ref<SectionId>(FIRST_SECTION_ID);
 
-  const findSection = (id: SectionId) =>
-    content.value?.querySelector<HTMLElement>(`[data-section="${id}"]`);
+  const findSection = (id: SectionId): HTMLElement | undefined =>
+    content.value?.querySelector<HTMLElement>(`[data-section="${id}"]`) ??
+    undefined;
 
   const scrollToSection = (id: SectionId) => {
     const section = findSection(id);
-    if (section === undefined || section === null) return;
+    if (section === undefined) return;
     content.value?.scrollTo({
-      top: section.offsetTop - 20,
+      top: section.offsetTop - SCROLL_MARGIN,
       behavior: "smooth",
     });
   };
@@ -35,11 +30,10 @@ export const useForm = () => {
     const passed = SECTIONS.filter(
       (section) => (findSection(section.id)?.offsetTop ?? 0) <= position,
     );
-    activeSection.value = passed.at(-1)?.id ?? "what-is-compare";
+    activeSection.value = passed.at(-1)?.id ?? FIRST_SECTION_ID;
   };
 
   return {
-    sections: SECTIONS,
     activeSection,
     version: __PLUGIN_VERSION__,
     scrollToSection,

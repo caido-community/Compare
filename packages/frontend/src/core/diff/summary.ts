@@ -1,12 +1,17 @@
 import { measureBytes } from "shared";
 
-import { type DiffMode, type DiffSummary, type Row } from "./types";
+import {
+  type DiffMode,
+  type DiffSummary,
+  type InlineDiffMode,
+  type Row,
+} from "./types";
 
 type UnitCounter = (text: string) => number;
 
 const WORD_PATTERN = /[\p{L}\p{N}_]+/gu;
 
-const UNIT_COUNTERS: Record<Exclude<DiffMode, "lines">, UnitCounter> = {
+const UNIT_COUNTERS: Record<InlineDiffMode, UnitCounter> = {
   words: (text) => text.match(WORD_PATTERN)?.length ?? 0,
   bytes: measureBytes,
 };

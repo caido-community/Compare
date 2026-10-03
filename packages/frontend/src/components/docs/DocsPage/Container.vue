@@ -1,17 +1,32 @@
 <script setup lang="ts">
 import Card from "primevue/card";
-import { ITEM_KINDS, MAX_ITEM_MEGABYTES, MAX_REQUESTS_PER_ADD } from "shared";
+import { ITEM_KINDS } from "shared";
 
+import Callout from "./Callout.vue";
+import CalloutLine from "./CalloutLine.vue";
+import {
+  ABOUT_TEXT,
+  AUTHOR,
+  COMPARISON_OPTIONS,
+  COMPARISON_TYPES,
+  CONTACT_LINKS,
+  HISTORY_GUIDES,
+  HISTORY_INPUT,
+  INPUT_METHODS,
+  INTRODUCTION,
+  PANEL_ACTION_GUIDES,
+  PER_PROJECT_NOTE,
+  QUICK_START_NOTE,
+  QUICK_START_STEPS,
+  SECTIONS,
+} from "./content";
+import InfoCard from "./InfoCard.vue";
+import DocsSection from "./Section.vue";
 import { useForm } from "./useForm";
 
-import {
-  CHANGE_DETAILS,
-  DIFF_MODE_DETAILS,
-  DIFF_OPTION_LABELS,
-} from "@/components/common/diffPresentation";
 import { ItemKindTag } from "@/components/common/ItemKindTag";
-import { getSendLabel, PANEL_ACTION_LABELS, PANEL_TITLES } from "@/core/panels";
-import { PLUGIN_NAME } from "@/core/plugin";
+import { CHANGE_DETAILS } from "@/presentation/diff";
+import { INFO_ICON, PLUGIN_NAME } from "@/presentation/plugin";
 
 defineOptions({ name: "DocsPage" });
 
@@ -22,12 +37,10 @@ const CARD_PT = {
   content: { class: "h-full flex flex-col" },
 };
 
-const SEND_LABELS = {
-  original: getSendLabel("original"),
-  modified: getSendLabel("modified"),
-};
-
 const LEGEND_KINDS = ["added", "deleted", "modified"] as const;
+
+const LINK_CLASS =
+  "flex items-center gap-1 text-sm text-primary-400 transition-colors hover:text-primary-300";
 </script>
 
 <template>
@@ -36,13 +49,13 @@ const LEGEND_KINDS = ["added", "deleted", "modified"] as const;
       <template #content>
         <nav class="h-full overflow-auto p-4 space-y-1">
           <div
-            v-for="section in form.sections"
+            v-for="section in SECTIONS"
             :key="section.id"
             class="cursor-pointer py-2 px-3 rounded text-sm transition-colors"
             :class="
               form.activeSection.value === section.id
-                ? 'bg-surface-700 text-white font-medium'
-                : 'text-surface-300 hover:bg-surface-800 hover:text-white'
+                ? 'bg-surface-700 text-surface-0 font-medium'
+                : 'text-surface-300 hover:bg-surface-800 hover:text-surface-0'
             "
             @click="form.scrollToSection(section.id)"
           >
@@ -60,217 +73,89 @@ const LEGEND_KINDS = ["added", "deleted", "modified"] as const;
           @scroll="form.trackActiveSection"
         >
           <div class="max-w-3xl space-y-12 pb-[36rem]">
-            <section data-section="what-is-compare">
-              <h2 class="text-2xl font-semibold mb-4">What is Compare?</h2>
-              <p class="text-surface-300 leading-relaxed mb-4">
-                Compare is a plugin for Caido that helps security professionals
-                perform side-by-side comparison of HTTP requests, responses, and
-                files with visual difference highlighting.
+            <DocsSection id="what-is-compare" class="space-y-4">
+              <p v-for="paragraph in INTRODUCTION" :key="paragraph">
+                {{ paragraph }}
               </p>
-              <p class="text-surface-300 leading-relaxed">
-                Think of it as a dedicated diff tool built into Caido: load two
-                pieces of data, compare them by words, bytes, or lines, and
-                instantly see what's different with color-coded highlighting.
-              </p>
-            </section>
+            </DocsSection>
 
-            <section data-section="quick-start">
-              <h2 class="text-2xl font-semibold mb-4">Quick Start</h2>
-              <p class="text-surface-300 leading-relaxed mb-6">
-                Get up and running with Compare in just a few steps:
-              </p>
-
+            <DocsSection id="quick-start">
+              <p class="mb-6">Get started with Compare in a few steps:</p>
               <div class="space-y-4">
-                <div class="border border-surface-700 rounded p-4">
-                  <h3 class="text-lg font-semibold mb-3">
-                    1. Add Data to {{ PANEL_TITLES.original }}
-                  </h3>
-                  <p class="text-surface-300 leading-relaxed">
-                    Paste content, load a file, or right-click a request in HTTP
-                    History and select "{{ SEND_LABELS.original }}".
-                  </p>
-                </div>
-
-                <div class="border border-surface-700 rounded p-4">
-                  <h3 class="text-lg font-semibold mb-3">
-                    2. Add Data to {{ PANEL_TITLES.modified }}
-                  </h3>
-                  <p class="text-surface-300 leading-relaxed">
-                    Add the second piece of content you want to compare using
-                    the same methods - paste, file, or from HTTP History.
-                  </p>
-                </div>
-
-                <div class="border border-surface-700 rounded p-4">
-                  <h3 class="text-lg font-semibold mb-3">3. Select Items</h3>
-                  <p class="text-surface-300 leading-relaxed">
-                    Click on one item in the Original panel and one item in the
-                    Modified panel to select them for comparison.
-                  </p>
-                </div>
-
-                <div class="border border-surface-700 rounded p-4">
-                  <h3 class="text-lg font-semibold mb-3">4. Compare</h3>
-                  <p class="text-surface-300 leading-relaxed">
-                    Click "{{ DIFF_MODE_DETAILS.words.buttonLabel }}" for text,
-                    "{{ DIFF_MODE_DETAILS.bytes.buttonLabel }}" for
-                    character-by-character analysis, or "{{
-                      DIFF_MODE_DETAILS.lines.buttonLabel
-                    }}" for line-by-line changes.
-                  </p>
-                </div>
+                <InfoCard
+                  v-for="step in QUICK_START_STEPS"
+                  :key="step.title"
+                  :title="step.title"
+                >
+                  <p>{{ step.text }}</p>
+                </InfoCard>
               </div>
+              <Callout>
+                <CalloutLine icon="fas fa-rocket">
+                  {{ QUICK_START_NOTE }}
+                </CalloutLine>
+              </Callout>
+            </DocsSection>
 
-              <div
-                class="mt-6 bg-surface-800 border border-surface-700 rounded p-4"
-              >
-                <p class="text-surface-300 text-sm">
-                  <i class="fas fa-rocket text-blue-400 mr-2"></i>
-                  That's it! The comparison modal will show color-coded
-                  differences between your two selections.
-                </p>
-              </div>
-            </section>
-
-            <section data-section="data-input">
-              <h2 class="text-2xl font-semibold mb-4">Data Input Methods</h2>
-              <p class="text-surface-300 leading-relaxed mb-6">
-                There are several ways to add data to Compare:
-              </p>
-
+            <DocsSection id="data-input">
+              <p class="mb-6">There are several ways to add data to Compare:</p>
               <div class="space-y-6">
-                <div>
-                  <h3 class="text-lg font-semibold mb-3">
-                    1. Paste from Clipboard
+                <div v-for="method in INPUT_METHODS" :key="method.title">
+                  <h3 class="mb-3 text-lg font-semibold text-surface-0">
+                    {{ method.title }}
                   </h3>
-                  <p class="text-surface-300 leading-relaxed">
-                    Copy any text to your clipboard and click the "{{
-                      PANEL_ACTION_LABELS.paste
-                    }}" button. The content will be added as a clipboard item.
-                  </p>
+                  <p>{{ method.text }}</p>
                 </div>
-
                 <div>
-                  <h3 class="text-lg font-semibold mb-3">2. Load from File</h3>
-                  <p class="text-surface-300 leading-relaxed">
-                    Click "{{ PANEL_ACTION_LABELS.load }}" to open a file
-                    picker. Select any text file (up to
-                    {{ MAX_ITEM_MEGABYTES }} MB) to add it to the panel.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 class="text-lg font-semibold mb-3">
-                    3. Send from HTTP History
+                  <h3 class="mb-3 text-lg font-semibold text-surface-0">
+                    {{ HISTORY_INPUT.title }}
                   </h3>
-                  <p class="text-surface-300 leading-relaxed mb-3">
-                    Right-click any request in Caido's HTTP History:
-                  </p>
-                  <ol
-                    class="list-decimal list-inside space-y-2 text-surface-300 ml-4"
-                  >
-                    <li>
-                      Select "{{ SEND_LABELS.original }}" to add to the left
-                      panel
-                    </li>
-                    <li>
-                      Select "{{ SEND_LABELS.modified }}" to add to the right
-                      panel
-                    </li>
-                    <li>
-                      You can select multiple requests (up to
-                      {{ MAX_REQUESTS_PER_ADD }})
+                  <p class="mb-3">Right-click any request in HTTP History:</p>
+                  <ol class="ml-4 list-inside list-decimal space-y-2">
+                    <li v-for="step in HISTORY_INPUT.steps" :key="step">
+                      {{ step }}
                     </li>
                   </ol>
                 </div>
               </div>
-            </section>
+            </DocsSection>
 
-            <section data-section="comparison-types">
-              <h2 class="text-2xl font-semibold mb-4">Comparison Types</h2>
-              <p class="text-surface-300 leading-relaxed mb-6">
-                Choose the right comparison method for your data:
-              </p>
-
+            <DocsSection id="comparison-types">
+              <p class="mb-6">Choose the right comparison for your data:</p>
               <div class="space-y-6">
-                <div class="border border-surface-700 rounded p-4">
-                  <h3 class="text-lg font-semibold mb-2 text-green-400">
-                    Word-Level Comparison
-                  </h3>
-                  <p class="text-surface-300 leading-relaxed mb-3">
-                    Best for comparing HTTP requests, responses, and text
-                    content. Uses intelligent word-boundary detection to
-                    highlight meaningful differences.
+                <InfoCard
+                  v-for="type in COMPARISON_TYPES"
+                  :key="type.title"
+                  :title="type.title"
+                  :title-class="type.titleClass"
+                >
+                  <p class="mb-3">{{ type.text }}</p>
+                  <p class="text-sm">
+                    <strong>Use when:</strong> {{ type.useWhen }}
                   </p>
-                  <p class="text-surface-300 text-sm">
-                    <strong>Use when:</strong> Comparing API responses, HTML
-                    content, configuration files, or any structured text.
+                </InfoCard>
+                <InfoCard title="Comparison Options">
+                  <p
+                    v-for="option in COMPARISON_OPTIONS"
+                    :key="option.title"
+                    class="mb-3 last:mb-0"
+                  >
+                    <strong>{{ option.title }}:</strong> {{ option.text }}
                   </p>
-                </div>
-
-                <div class="border border-surface-700 rounded p-4">
-                  <h3 class="text-lg font-semibold mb-2 text-blue-400">
-                    Byte-Level Comparison
-                  </h3>
-                  <p class="text-surface-300 leading-relaxed mb-3">
-                    Character-by-character analysis for precise difference
-                    detection. Shows every single character change.
-                  </p>
-                  <p class="text-surface-300 text-sm">
-                    <strong>Use when:</strong> Comparing encoded content,
-                    binary-like data, or when you need exact character
-                    differences.
-                  </p>
-                </div>
-
-                <div class="border border-surface-700 rounded p-4">
-                  <h3 class="text-lg font-semibold mb-2 text-amber-400">
-                    Line-Level Comparison
-                  </h3>
-                  <p class="text-surface-300 leading-relaxed mb-3">
-                    Compares text line by line. Ideal for config files, scripts,
-                    and HTTP bodies where changes are often whole-line.
-                  </p>
-                  <p class="text-surface-300 text-sm">
-                    <strong>Use when:</strong> Comparing multi-line content
-                    where each line is a logical unit.
-                  </p>
-                </div>
-
-                <div class="border border-surface-700 rounded p-4">
-                  <h3 class="text-lg font-semibold mb-2 text-surface-300">
-                    Comparison Options
-                  </h3>
-                  <p class="text-surface-300 leading-relaxed mb-3">
-                    <strong>{{ DIFF_OPTION_LABELS.ignoreWhitespace }}:</strong>
-                    Normalizes spaces and tabs within lines while preserving
-                    line breaks. Useful for comparing formatted text where
-                    indentation varies.
-                  </p>
-                  <p class="text-surface-300 leading-relaxed">
-                    <strong>{{ DIFF_OPTION_LABELS.ignoreCase }}:</strong>
-                    Performs case-insensitive comparison. Perfect for comparing
-                    text where capitalization differences don't matter.
-                  </p>
-                </div>
+                </InfoCard>
               </div>
-
-              <div
-                class="mt-6 bg-surface-800 border border-surface-700 rounded p-4"
-              >
-                <p class="text-surface-300 text-sm mb-3">
-                  <i class="fas fa-palette text-blue-400 mr-2"></i>
+              <Callout>
+                <CalloutLine icon="fas fa-palette">
                   <strong>Color coding:</strong>
                   <span
                     v-for="kind in LEGEND_KINDS"
                     :key="kind"
-                    class="ml-2 px-2 py-0.5 rounded-sm"
+                    class="ml-2 rounded-sm px-2 py-0.5"
                     :class="CHANGE_DETAILS[kind].chipClass"
                     >{{ CHANGE_DETAILS[kind].label }}</span
                   >
-                </p>
-                <p class="text-surface-300 text-sm">
-                  <i class="fas fa-tags text-blue-400 mr-2"></i>
+                </CalloutLine>
+                <CalloutLine icon="fas fa-tags">
                   <strong>Item types:</strong>
                   <ItemKindTag
                     v-for="kind in ITEM_KINDS"
@@ -278,172 +163,89 @@ const LEGEND_KINDS = ["added", "deleted", "modified"] as const;
                     :kind="kind"
                     class="ml-2"
                   />
-                </p>
-              </div>
-            </section>
+                </CalloutLine>
+              </Callout>
+            </DocsSection>
 
-            <section data-section="panel-management">
-              <h2 class="text-2xl font-semibold mb-4">Panel Management</h2>
-              <p class="text-surface-300 leading-relaxed mb-6">
-                Efficiently organize and manage your comparison data:
-              </p>
-
+            <DocsSection id="panel-management">
+              <p class="mb-6">Organize and manage your comparison data:</p>
               <div class="space-y-4">
-                <div class="border-l-4 border-blue-500 pl-4">
-                  <h4 class="font-semibold mb-1">
-                    {{ PANEL_ACTION_LABELS.remove }}
+                <div
+                  v-for="guide in PANEL_ACTION_GUIDES"
+                  :key="guide.title"
+                  class="border-l-4 border-blue-500 pl-4"
+                >
+                  <h4 class="mb-1 font-semibold text-surface-0">
+                    {{ guide.title }}
                   </h4>
-                  <p class="text-surface-300 text-sm">
-                    Select items and click "{{ PANEL_ACTION_LABELS.remove }}" to
-                    delete them from the panel.
-                  </p>
-                </div>
-                <div class="border-l-4 border-blue-500 pl-4">
-                  <h4 class="font-semibold mb-1">
-                    {{ PANEL_ACTION_LABELS.clear }}
-                  </h4>
-                  <p class="text-surface-300 text-sm">
-                    Click "{{ PANEL_ACTION_LABELS.clear }}" to remove all items
-                    from a panel at once.
-                  </p>
-                </div>
-                <div class="border-l-4 border-blue-500 pl-4">
-                  <h4 class="font-semibold mb-1">
-                    {{ PANEL_ACTION_LABELS.move }}
-                  </h4>
-                  <p class="text-surface-300 text-sm">
-                    Right-click any item and select "{{
-                      PANEL_ACTION_LABELS.move
-                    }}" to send it to the other panel. Works with multiple
-                    selected items.
-                  </p>
-                </div>
-                <div class="border-l-4 border-blue-500 pl-4">
-                  <h4 class="font-semibold mb-1">Multi-Select</h4>
-                  <p class="text-surface-300 text-sm">
-                    Click checkboxes to select multiple items for bulk
-                    operations.
-                  </p>
+                  <p class="text-sm">{{ guide.text }}</p>
                 </div>
               </div>
+              <Callout>
+                <CalloutLine :icon="INFO_ICON">{{
+                  PER_PROJECT_NOTE
+                }}</CalloutLine>
+              </Callout>
+            </DocsSection>
 
-              <div
-                class="mt-6 bg-surface-800 border border-surface-700 rounded p-4"
-              >
-                <p class="text-surface-300 text-sm">
-                  <i class="fas fa-info-circle text-blue-400 mr-2"></i>
-                  Data is saved per project. Each project keeps its own Original
-                  and Modified items.
-                </p>
-              </div>
-            </section>
-
-            <section data-section="http-history">
-              <h2 class="text-2xl font-semibold mb-4">
-                HTTP History Integration
-              </h2>
-              <p class="text-surface-300 leading-relaxed mb-6">
-                Compare integrates directly with Caido's HTTP History for quick
-                access:
+            <DocsSection id="http-history">
+              <p class="mb-6">
+                Compare works directly with Caido's HTTP History:
               </p>
-
               <div class="space-y-4">
-                <div class="border border-surface-700 rounded p-4">
-                  <h4 class="font-semibold mb-3">Individual Requests</h4>
-                  <ol
-                    class="list-decimal list-inside space-y-2 text-surface-300"
-                  >
-                    <li>Right-click any request in HTTP History</li>
-                    <li>
-                      Select "{{ SEND_LABELS.original }}" or "{{
-                        SEND_LABELS.modified
-                      }}"
-                    </li>
-                    <li>Request data appears automatically in Compare</li>
+                <InfoCard
+                  v-for="guide in HISTORY_GUIDES"
+                  :key="guide.title"
+                  :title="guide.title"
+                >
+                  <ol class="list-inside list-decimal space-y-2">
+                    <li v-for="step in guide.steps" :key="step">{{ step }}</li>
                   </ol>
-                </div>
-
-                <div class="border border-surface-700 rounded p-4">
-                  <h4 class="font-semibold mb-3">Bulk Operations</h4>
-                  <ol
-                    class="list-decimal list-inside space-y-2 text-surface-300"
-                  >
-                    <li>
-                      Select multiple requests (up to
-                      {{ MAX_REQUESTS_PER_ADD }})
-                    </li>
-                    <li>
-                      Right-click → "{{ SEND_LABELS.original }}" or "{{
-                        SEND_LABELS.modified
-                      }}"
-                    </li>
-                    <li>All requests are processed automatically</li>
-                  </ol>
-                </div>
+                </InfoCard>
               </div>
-            </section>
+            </DocsSection>
 
-            <section data-section="about">
-              <h2 class="text-2xl font-semibold text-white mb-4">About</h2>
-              <p class="leading-relaxed mb-6">
-                Compare is a professional Caido plugin for security
-                professionals who need precise side-by-side comparison
-                capabilities.
-              </p>
-
-              <div class="border border-surface-700 rounded p-4">
+            <DocsSection id="about">
+              <p class="mb-6">{{ ABOUT_TEXT }}</p>
+              <div class="rounded border border-surface-700 p-4">
                 <div class="mb-4">
-                  <h3 class="text-xl font-bold text-white">
+                  <h3 class="text-xl font-bold text-surface-0">
                     {{ PLUGIN_NAME }}
                   </h3>
                   <p class="text-sm text-surface-400">
                     Version {{ form.version }}
                   </p>
                 </div>
-
                 <div
-                  class="pt-4 border-t border-surface-700 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
+                  class="flex flex-col items-start justify-between gap-4 border-t border-surface-700 pt-4 sm:flex-row sm:items-center"
                 >
                   <div class="text-sm">
                     <span class="font-medium">Made with</span>
-                    <i class="fas fa-heart text-red-500 mx-1" />
+                    <i class="fas fa-heart mx-1 text-red-500" />
                     <span class="font-medium">by</span>
                     <a
-                      href="https://amrelsagaei.com"
+                      :href="AUTHOR.url"
                       target="_blank"
-                      class="font-medium text-primary-400 hover:text-primary-300 transition-colors ml-1"
+                      class="ml-1 font-medium text-primary-400 transition-colors hover:text-primary-300"
                     >
-                      Amr Elsagaei
+                      {{ AUTHOR.name }}
                     </a>
                   </div>
                   <div class="flex gap-4">
                     <a
-                      href="mailto:info@amrelsagaei.com"
-                      class="text-sm text-primary-400 hover:text-primary-300 transition-colors flex items-center gap-1"
-                    >
-                      <i class="fas fa-envelope" />
-                      Email
-                    </a>
-                    <a
-                      href="https://www.linkedin.com/in/amrelsagaei"
+                      v-for="link in CONTACT_LINKS"
+                      :key="link.label"
+                      :href="link.href"
                       target="_blank"
-                      class="text-sm text-primary-400 hover:text-primary-300 transition-colors flex items-center gap-1"
+                      :class="LINK_CLASS"
                     >
-                      <i class="fab fa-linkedin" />
-                      LinkedIn
-                    </a>
-                    <a
-                      href="https://x.com/amrelsagaei"
-                      target="_blank"
-                      class="text-sm text-primary-400 hover:text-primary-300 transition-colors flex items-center gap-1"
-                    >
-                      <i class="fab fa-x-twitter" />
-                      X/Twitter
+                      <i :class="link.icon" />
+                      {{ link.label }}
                     </a>
                   </div>
                 </div>
               </div>
-            </section>
+            </DocsSection>
           </div>
         </div>
       </template>

@@ -2,8 +2,11 @@ import vue from "@vitejs/plugin-vue";
 import path from "path";
 import { defineConfig } from "vitest/config";
 
+import { PLUGIN_DEFINES } from "./caido.config";
+
 export default defineConfig({
   plugins: [vue({ include: [/\.vue$/] })],
+  define: PLUGIN_DEFINES,
   resolve: {
     alias: [
       {

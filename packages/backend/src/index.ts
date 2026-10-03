@@ -2,7 +2,8 @@ import type { SDK } from "caido:plugin";
 import type { Result, Spec } from "shared";
 
 import { buildItemsApi } from "./items/api";
-import { migrateStorage, type MigrationOutcome } from "./items/migrations";
+import { buildMigrator } from "./items/migrations";
+import { type MigrationOutcome } from "./items/migrations/types";
 import { buildProjectState } from "./items/project";
 import { buildItemStore } from "./items/store";
 import { buildFileSystem, buildPath } from "./runtime/fileSystem";
@@ -34,8 +35,7 @@ export function init(sdk: SDK<Spec>) {
 
   const project = buildProjectState({
     store,
-    migrate: (projectId) =>
-      migrateStorage({ fileSystem, store, root, projectId, now }),
+    migrate: buildMigrator({ fileSystem, store, root, now }),
     notifyChange: () => sdk.api.send("itemsChanged"),
   });
 
@@ -60,15 +60,21 @@ export function init(sdk: SDK<Spec>) {
   sdk.api.register("clearPanel", (_sdk, panel) => items.clearPanel(panel));
 
   const switchProject = async (projectId: string | undefined) => {
-    if (projectId === undefined) return project.close();
+    if (projectId === undefined) {
+      await project.close();
+      return;
+    }
     reportOpened(sdk, await project.open(projectId));
   };
 
-  void sdk.projects
-    .getCurrent()
-    .then((current) => switchProject(current?.getId()));
+  let hasProjectChanged = false;
 
-  sdk.events.onProjectChange((_sdk, current) =>
-    switchProject(current?.getId()),
-  );
+  void sdk.projects.getCurrent().then((current) => {
+    if (!hasProjectChanged) void switchProject(current?.getId());
+  });
+
+  sdk.events.onProjectChange((_sdk, current) => {
+    hasProjectChanged = true;
+    return switchProject(current?.getId());
+  });
 }

@@ -1,15 +1,26 @@
 import { type ChangeObject, diffChars, diffWordsWithSpace } from "diff";
 
-import { type DiffMode, type Segment } from "./types";
+import {
+  type DiffMode,
+  type InlineDiffMode,
+  type Segment,
+  type Sides,
+} from "./types";
 
-type HighlightedPair = { original: Segment[]; modified: Segment[] };
+type HighlightedPair = Sides<Segment[]>;
+
+type Differ = (
+  original: string,
+  modified: string,
+  options: { timeout: number },
+) => ChangeObject<string>[] | undefined;
 
 export type Highlighter = {
   highlightPair: (original: string, modified: string) => HighlightedPair;
   isComplete: () => boolean;
 };
 
-const DIFFERS = {
+const DIFFERS: Record<InlineDiffMode, Differ> = {
   words: diffWordsWithSpace,
   bytes: diffChars,
 };
@@ -19,49 +30,59 @@ const markWhole = (original: string, modified: string): HighlightedPair => ({
   modified: [{ text: modified, kind: "modified" }],
 });
 
-const toSegments = (changes: ChangeObject<string>[]): HighlightedPair => {
+const buildHighlightedPair = (
+  changes: ChangeObject<string>[],
+): HighlightedPair => {
   const pair: HighlightedPair = { original: [], modified: [] };
   for (const [index, change] of changes.entries()) {
-    const text = change.value;
     if (change.removed) {
       const isReplaced = changes[index + 1]?.added === true;
-      pair.original.push({ text, kind: isReplaced ? "modified" : "deleted" });
+      const kind = isReplaced ? "modified" : "deleted";
+      pair.original.push({ text: change.value, kind });
       continue;
     }
     if (change.added) {
       const isReplacement = changes[index - 1]?.removed === true;
-      pair.modified.push({ text, kind: isReplacement ? "modified" : "added" });
+      const kind = isReplacement ? "modified" : "added";
+      pair.modified.push({ text: change.value, kind });
       continue;
     }
-    pair.original.push({ text, kind: "unchanged" });
-    pair.modified.push({ text, kind: "unchanged" });
+    pair.original.push({ text: change.value, kind: "unchanged" });
+    pair.modified.push({ text: change.value, kind: "unchanged" });
   }
   return pair;
+};
+
+const buildBudgetedHighlighter = (
+  differ: Differ,
+  budgetMs: number,
+): Highlighter => {
+  let remainingMs = budgetMs;
+  let hasRunOut = false;
+
+  const highlightPair = (original: string, modified: string) => {
+    if (remainingMs <= 0) {
+      hasRunOut = true;
+      return markWhole(original, modified);
+    }
+
+    const startedAt = performance.now();
+    const changes = differ(original, modified, { timeout: remainingMs });
+    remainingMs -= performance.now() - startedAt;
+    if (changes === undefined) {
+      hasRunOut = true;
+      return markWhole(original, modified);
+    }
+    return buildHighlightedPair(changes);
+  };
+
+  return { highlightPair, isComplete: () => !hasRunOut };
 };
 
 export const buildHighlighter = (
   mode: DiffMode,
   budgetMs: number,
-): Highlighter => {
-  let remainingMs = budgetMs;
-  let isComplete = true;
-
-  const highlightPair = (original: string, modified: string) => {
-    if (mode === "lines") return markWhole(original, modified);
-    if (remainingMs <= 0) {
-      isComplete = false;
-      return markWhole(original, modified);
-    }
-
-    const startedAt = performance.now();
-    const changes = DIFFERS[mode](original, modified, { timeout: remainingMs });
-    remainingMs -= performance.now() - startedAt;
-    if (changes === undefined) {
-      isComplete = false;
-      return markWhole(original, modified);
-    }
-    return toSegments(changes);
-  };
-
-  return { highlightPair, isComplete: () => isComplete };
-};
+): Highlighter =>
+  mode === "lines"
+    ? { highlightPair: markWhole, isComplete: () => true }
+    : buildBudgetedHighlighter(DIFFERS[mode], budgetMs);

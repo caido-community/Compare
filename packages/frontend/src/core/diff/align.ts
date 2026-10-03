@@ -1,12 +1,8 @@
-import { diffArrays } from "diff";
+import { type ArrayChange, diffArrays } from "diff";
 
-import { type DiffOptions } from "./types";
+import { type DiffOptions, type Sides } from "./types";
 
-export type LineBlock = {
-  kind: "unchanged" | "changed";
-  original: number[];
-  modified: number[];
-};
+export type LineBlock = { kind: "unchanged" | "changed" } & Sides<number[]>;
 
 export type Alignment = { blocks: LineBlock[]; isComplete: boolean };
 
@@ -20,13 +16,36 @@ const normalizeLine = (line: string, options: DiffOptions): string => {
   return options.ignoreWhitespace ? cased.trim().replace(/\s+/g, " ") : cased;
 };
 
-const openChangedBlock = (blocks: LineBlock[]): LineBlock => {
-  const last = blocks.at(-1);
-  if (last?.kind === "changed") return last;
+const normalizeLines = (lines: string[], options: DiffOptions): string[] =>
+  lines.map((line) => normalizeLine(line, options));
 
-  const block: LineBlock = { kind: "changed", original: [], modified: [] };
-  blocks.push(block);
-  return block;
+const buildBlock = (
+  change: ArrayChange<string>,
+  originalIndex: number,
+  modifiedIndex: number,
+): LineBlock => ({
+  kind: change.added || change.removed ? "changed" : "unchanged",
+  original: change.added ? [] : range(originalIndex, change.count),
+  modified: change.removed ? [] : range(modifiedIndex, change.count),
+});
+
+const joinBlocks = (first: LineBlock, second: LineBlock): LineBlock => ({
+  kind: "changed",
+  original: first.original.concat(second.original),
+  modified: first.modified.concat(second.modified),
+});
+
+const mergeChangedBlocks = (blocks: LineBlock[]): LineBlock[] => {
+  const merged: LineBlock[] = [];
+  for (const block of blocks) {
+    const last = merged.at(-1);
+    if (last?.kind === "changed" && block.kind === "changed") {
+      merged[merged.length - 1] = joinBlocks(last, block);
+      continue;
+    }
+    merged.push(block);
+  }
+  return merged;
 };
 
 const alignByDiff = (
@@ -40,29 +59,13 @@ const alignByDiff = (
   const blocks: LineBlock[] = [];
   let originalIndex = 0;
   let modifiedIndex = 0;
-  for (const { added, removed, count } of changes) {
-    if (!added && !removed) {
-      blocks.push({
-        kind: "unchanged",
-        original: range(originalIndex, count),
-        modified: range(modifiedIndex, count),
-      });
-      originalIndex += count;
-      modifiedIndex += count;
-      continue;
-    }
-
-    const block = openChangedBlock(blocks);
-    if (removed) {
-      block.original = block.original.concat(range(originalIndex, count));
-      originalIndex += count;
-    }
-    if (added) {
-      block.modified = block.modified.concat(range(modifiedIndex, count));
-      modifiedIndex += count;
-    }
+  for (const change of changes) {
+    const block = buildBlock(change, originalIndex, modifiedIndex);
+    blocks.push(block);
+    originalIndex += block.original.length;
+    modifiedIndex += block.modified.length;
   }
-  return blocks;
+  return mergeChangedBlocks(blocks);
 };
 
 const alignByPosition = (original: string[], modified: string[]): LineBlock[] =>
@@ -73,21 +76,13 @@ const alignByPosition = (original: string[], modified: string[]): LineBlock[] =>
   }));
 
 export const alignLines = (
-  original: string[],
-  modified: string[],
+  lines: Sides<string[]>,
   options: DiffOptions,
   timeoutMs: number,
 ): Alignment => {
-  const normalizedOriginal = original.map((line) =>
-    normalizeLine(line, options),
-  );
-  const normalizedModified = modified.map((line) =>
-    normalizeLine(line, options),
-  );
-  const blocks = alignByDiff(normalizedOriginal, normalizedModified, timeoutMs);
+  const original = normalizeLines(lines.original, options);
+  const modified = normalizeLines(lines.modified, options);
+  const blocks = alignByDiff(original, modified, timeoutMs);
   if (blocks !== undefined) return { blocks, isComplete: true };
-  return {
-    blocks: alignByPosition(normalizedOriginal, normalizedModified),
-    isComplete: false,
-  };
+  return { blocks: alignByPosition(original, modified), isComplete: false };
 };

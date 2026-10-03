@@ -1,4 +1,4 @@
-import { getOtherPanel, type Panel, PANELS } from "shared";
+import { getOtherPanel, mapPanels, type Panel, PANELS } from "shared";
 import { onUnmounted, reactive, ref, type Ref } from "vue";
 
 import { GUTTER_WIDTH } from "./layout";
@@ -8,6 +8,8 @@ type ScrollAreaRef = (element: unknown) => void;
 const FALLBACK_CHAR_WIDTH = 7;
 
 const PROBE_LENGTH = 100;
+
+const DEFAULT_CHARS_PER_LINE = 80;
 
 const measureCharWidth = (element: HTMLElement): number => {
   const probe = document.createElement("span");
@@ -21,16 +23,10 @@ const measureCharWidth = (element: HTMLElement): number => {
 };
 
 export const useScrollPanes = (isSynced: Ref<boolean>) => {
-  const scrollTops = reactive<Record<Panel, number>>({
-    original: 0,
-    modified: 0,
-  });
+  const scrollTops = reactive(mapPanels(() => 0));
   const viewportHeight = ref(0);
-  const charsPerLine = ref(80);
-  const scrollAreas: Record<Panel, HTMLElement | undefined> = {
-    original: undefined,
-    modified: undefined,
-  };
+  const charsPerLine = ref(DEFAULT_CHARS_PER_LINE);
+  const scrollAreas = mapPanels((): HTMLElement | undefined => undefined);
   let charWidth = FALLBACK_CHAR_WIDTH;
 
   const measurePanes = () => {
@@ -86,10 +82,7 @@ export const useScrollPanes = (isSynced: Ref<boolean>) => {
     scrollTops,
     viewportHeight,
     charsPerLine,
-    scrollAreaRefs: {
-      original: bindScrollArea("original"),
-      modified: bindScrollArea("modified"),
-    },
+    scrollAreaRefs: mapPanels(bindScrollArea),
     syncScroll,
   };
 };

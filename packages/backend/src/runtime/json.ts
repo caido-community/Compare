@@ -2,11 +2,16 @@ import { err, ok, type Result } from "shared";
 
 import { buildPath, type FileSystem } from "./fileSystem";
 
-const parseJson = (content: string): unknown => {
+type JsonOutcome =
+  | { kind: "Found"; value: unknown }
+  | { kind: "Missing" }
+  | { kind: "Invalid" };
+
+const parseJson = (content: string): JsonOutcome => {
   try {
-    return JSON.parse(content);
+    return { kind: "Found", value: JSON.parse(content) };
   } catch {
-    return undefined;
+    return { kind: "Invalid" };
   }
 };
 
@@ -16,10 +21,11 @@ export const formatJson = (value: unknown): string =>
 export const readJsonFile = async (
   fileSystem: FileSystem,
   path: string,
-): Promise<Result<unknown>> => {
+): Promise<Result<JsonOutcome>> => {
   const read = await fileSystem.readTextFile(path);
   if (read.kind === "Failed") return err(read.message);
-  return ok(read.kind === "Found" ? parseJson(read.content) : undefined);
+  if (read.kind === "Missing") return ok({ kind: "Missing" });
+  return ok(parseJson(read.content));
 };
 
 export const readJsonDirectory = async (
@@ -30,12 +36,12 @@ export const readJsonDirectory = async (
   if (listed.kind === "Failed") return err(listed.message);
 
   const files = listed.names.filter((name) => name.endsWith(".json"));
-  const contents: unknown[] = [];
+  const values: unknown[] = [];
   for (const file of files) {
     const read = await readJsonFile(fileSystem, buildPath(directory, file));
     if (read.kind === "Error") return read;
-    contents.push(read.value);
+    if (read.value.kind === "Found") values.push(read.value.value);
   }
 
-  return ok(contents);
+  return ok(values);
 };

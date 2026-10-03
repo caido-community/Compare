@@ -17,10 +17,18 @@ const form = useForm(services);
   <div class="h-full flex flex-col gap-1.5">
     <div class="flex-1 min-h-0 flex gap-1.5">
       <div class="w-1/2 min-w-0">
-        <ItemPanel :panel="form.original" />
+        <ItemPanel
+          v-model:selected="form.originalSelection.value"
+          panel="original"
+          :services="services"
+        />
       </div>
       <div class="w-1/2 min-w-0">
-        <ItemPanel :panel="form.modified" />
+        <ItemPanel
+          v-model:selected="form.modifiedSelection.value"
+          panel="modified"
+          :services="services"
+        />
       </div>
     </div>
     <CompareControls

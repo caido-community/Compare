@@ -5,6 +5,7 @@ import {
   readFile,
   rename,
   rm,
+  stat,
   writeFile,
 } from "fs/promises";
 import { dirname, join } from "path";
@@ -18,12 +19,18 @@ type ReadOutcome =
 
 type WriteOutcome = { kind: "Written" } | { kind: "Failed"; message: string };
 
+type SizeOutcome =
+  | { kind: "Found"; bytes: number }
+  | { kind: "Missing" }
+  | { kind: "Failed"; message: string };
+
 type ListOutcome =
   | { kind: "Listed"; names: string[] }
   | { kind: "Failed"; message: string };
 
 export type FileSystem = {
   readTextFile: (path: string) => Promise<ReadOutcome>;
+  readFileSize: (path: string) => Promise<SizeOutcome>;
   writeTextFile: (path: string, content: string) => Promise<WriteOutcome>;
   removeFile: (path: string) => Promise<WriteOutcome>;
   removeDirectory: (path: string) => Promise<WriteOutcome>;
@@ -45,6 +52,16 @@ export const buildFileSystem = (): FileSystem => ({
   readTextFile: async (path) => {
     try {
       return { kind: "Found", content: await readFile(path, "utf8") };
+    } catch (error) {
+      return (await exists(path))
+        ? { kind: "Failed", message: readErrorMessage(error) }
+        : { kind: "Missing" };
+    }
+  },
+
+  readFileSize: async (path) => {
+    try {
+      return { kind: "Found", bytes: (await stat(path)).size };
     } catch (error) {
       return (await exists(path))
         ? { kind: "Failed", message: readErrorMessage(error) }

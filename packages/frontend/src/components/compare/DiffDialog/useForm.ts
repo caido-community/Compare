@@ -1,4 +1,4 @@
-import { type CompareItem, type Panel, PANELS } from "shared";
+import { type CompareItem, mapPanels, type Panel } from "shared";
 import { computed, ref } from "vue";
 
 import {
@@ -12,42 +12,36 @@ import {
 import { useScrollPanes } from "./useScrollPanes";
 
 import {
-  CHANGE_DETAILS,
-  DIFF_MODE_DETAILS,
-} from "@/components/common/diffPresentation";
-import {
   type DiffResult,
   type Row,
-  ROW_KINDS,
   type RowKind,
   type Segment,
 } from "@/core/diff";
+import {
+  CHANGE_DETAILS,
+  DIFF_MODE_DETAILS,
+  FILLER_ROW_CLASS,
+} from "@/presentation/diff";
+import { pluralize } from "@/presentation/format";
 
-export type DiffView = {
-  original: CompareItem;
-  modified: CompareItem;
-  result: DiffResult;
-};
+export type DiffView = Record<Panel, CompareItem> & { result: DiffResult };
 
-type VisibleWindow = {
-  offset: number;
-  entries: Array<{ row: Row; index: number; height: number }>;
-};
+type VisibleEntry = { row: Row; index: number; height: number };
 
-const ROW_CLASSES: Record<RowKind, string> = {
-  unchanged: "",
-  added: "bg-green-900/40",
-  deleted: "bg-red-900/40",
-  modified: "bg-orange-900/30",
-};
-
-const FILLER_CLASS = "bg-surface-800/60";
+type VisibleWindow = { offset: number; entries: VisibleEntry[] };
 
 const ALIGNMENT_NOTICE =
   "These inputs are too different to align quickly, so lines are paired by position.";
 
 const HIGHLIGHT_NOTICE =
   "Some changed lines were too large to highlight in detail, so they are marked as a whole.";
+
+const WRAPPED_CLASSES = {
+  window: "w-full",
+  text: "whitespace-pre-wrap break-all",
+};
+
+const UNWRAPPED_CLASSES = { window: "w-max", text: "whitespace-pre" };
 
 const measureContentWidth = (rows: Row[], panel: Panel): string => {
   const longest = rows.reduce(
@@ -77,6 +71,10 @@ export const useForm = (view: () => DiffView | undefined) => {
       isWrapped.value ? panes.charsPerLine.value : undefined,
     ),
   );
+  const totalHeight = computed(() => tops.value.at(-1) ?? 0);
+  const contentWidths = computed(() =>
+    mapPanels((panel) => measureContentWidth(rows.value, panel)),
+  );
 
   const buildWindow = (panel: Panel): VisibleWindow => {
     const { first, last } = selectVisibleRange(
@@ -92,40 +90,46 @@ export const useForm = (view: () => DiffView | undefined) => {
     return { offset: tops.value[first] ?? 0, entries };
   };
 
+  const windows = computed(() => mapPanels(buildWindow));
+
+  const formatCount = (kind: RowKind): string => {
+    const result = view()?.result;
+    if (result === undefined) return "";
+    const unit = DIFF_MODE_DETAILS[result.mode].unit;
+    return `${CHANGE_DETAILS[kind].label}: ${pluralize(result.summary[kind], unit)}`;
+  };
+
   return {
     isWrapped,
     isSynced,
-    panels: PANELS,
-    modeDetails: DIFF_MODE_DETAILS,
-    changeKinds: ROW_KINDS,
-    changeDetails: CHANGE_DETAILS,
-    tabSize: TAB_SIZE,
-    lineHeight: LINE_HEIGHT,
-    gutterWidth: GUTTER_WIDTH,
-    windows: computed(() => ({
-      original: buildWindow("original"),
-      modified: buildWindow("modified"),
-    })),
-    contentWidths: computed(() => ({
-      original: measureContentWidth(rows.value, "original"),
-      modified: measureContentWidth(rows.value, "modified"),
-    })),
-    totalHeight: computed(() => tops.value.at(-1) ?? 0),
+    windows,
     notices: computed(() => buildNotices(view()?.result)),
+    wrapClasses: computed(() =>
+      isWrapped.value ? WRAPPED_CLASSES : UNWRAPPED_CLASSES,
+    ),
     scrollAreaRefs: panes.scrollAreaRefs,
     syncScroll: panes.syncScroll,
+    formatCount,
+    paneStyle: { tabSize: TAB_SIZE },
+    gutterStyle: { width: `${GUTTER_WIDTH}px` },
+    contentStyle: (panel: Panel) => ({
+      height: `${totalHeight.value}px`,
+      minWidth: isWrapped.value ? undefined : contentWidths.value[panel],
+    }),
+    windowStyle: (panel: Panel) => ({
+      transform: `translateY(${windows.value[panel].offset}px)`,
+    }),
+    rowStyle: (entry: VisibleEntry) => ({
+      height: `${entry.height}px`,
+      lineHeight: `${LINE_HEIGHT}px`,
+    }),
     rowClass: (row: Row, panel: Panel) =>
-      row[panel] === undefined ? FILLER_CLASS : ROW_CLASSES[row.kind],
+      row[panel] === undefined
+        ? FILLER_ROW_CLASS
+        : CHANGE_DETAILS[row.kind].rowClass,
     segmentClass: (segment: Segment, row: Row) =>
       row.kind === "modified" && segment.kind !== "unchanged"
         ? CHANGE_DETAILS[segment.kind].chipClass
         : "",
-    formatCount: (kind: RowKind) => {
-      const result = view()?.result;
-      if (result === undefined) return "";
-      const count = result.summary[kind];
-      const unit = DIFF_MODE_DETAILS[result.mode].unit;
-      return `${CHANGE_DETAILS[kind].label}: ${count} ${count === 1 ? unit.one : unit.other}`;
-    },
   };
 };

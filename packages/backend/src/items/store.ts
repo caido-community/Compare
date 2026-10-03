@@ -3,6 +3,7 @@ import { type CompareItem, err, ok, type Panel, type Result } from "shared";
 import { buildPath, type FileSystem } from "../runtime/fileSystem";
 import { formatJson, readJsonDirectory } from "../runtime/json";
 
+import { sortById } from "./panels";
 import { storedItemSchema } from "./schema";
 
 export type ItemStore = {
@@ -24,12 +25,12 @@ export type ItemStore = {
 };
 
 const toItems = (contents: unknown[]): CompareItem[] =>
-  contents
-    .flatMap((content) => {
+  sortById(
+    contents.flatMap((content) => {
       const parsed = storedItemSchema.safeParse(content);
       return parsed.success ? [parsed.data] : [];
-    })
-    .sort((a, b) => a.id - b.id);
+    }),
+  );
 
 export const buildItemStore = (
   fileSystem: FileSystem,

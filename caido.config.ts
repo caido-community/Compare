@@ -10,10 +10,19 @@ import tailwindPrimeui from "tailwindcss-primeui";
 
 const id = "compare";
 
+const name = "Compare";
+
 const version = "1.1.0";
+
+export const PLUGIN_DEFINES = {
+  __PLUGIN_ID__: JSON.stringify(id),
+  __PLUGIN_NAME__: JSON.stringify(name),
+  __PLUGIN_VERSION__: JSON.stringify(version),
+};
+
 export default defineConfig({
   id,
-  name: "Compare",
+  name,
   description:
     "Side-by-side comparison of HTTP requests, responses, and files with visual difference highlighting",
   version,
@@ -37,24 +46,22 @@ export default defineConfig({
       },
       vite: {
         plugins: [vue()],
-        define: {
-          __PLUGIN_ID__: JSON.stringify(id),
-          __PLUGIN_VERSION__: JSON.stringify(version),
-        },
+        define: PLUGIN_DEFINES,
         build: {
           rollupOptions: {
             external: [
               "@caido/frontend-sdk",
-              "@codemirror/state",
-              "@codemirror/view",
               "@codemirror/autocomplete",
               "@codemirror/commands",
+              "@codemirror/language",
               "@codemirror/lint",
               "@codemirror/search",
-              "@codemirror/language",
+              "@codemirror/state",
+              "@codemirror/view",
               "@lezer/common",
               "@lezer/highlight",
               "@lezer/lr",
+              "vue",
             ],
           },
         },
@@ -69,10 +76,7 @@ export default defineConfig({
         css: {
           postcss: {
             plugins: [
-              // This plugin wraps the root element in a unique ID
-              // This is necessary to prevent styling conflicts between plugins
               prefixwrap(`#plugin--${id}`),
-
               tailwindcss({
                 corePlugins: {
                   preflight: false,
@@ -81,16 +85,8 @@ export default defineConfig({
                   "./packages/frontend/src/**/*.{vue,ts}",
                   "./node_modules/@caido/primevue/dist/primevue.mjs",
                 ],
-                // Check the [data-mode="dark"] attribute on the <html> element to determine the mode
-                // This attribute is set in the Caido core application
                 darkMode: ["selector", '[data-mode="dark"]'],
-                plugins: [
-                  // This plugin injects the necessary Tailwind classes for PrimeVue components
-                  tailwindPrimeui,
-
-                  // This plugin injects the necessary Tailwind classes for the Caido theme
-                  tailwindCaido,
-                ],
+                plugins: [tailwindPrimeui, tailwindCaido],
               }),
             ],
           },

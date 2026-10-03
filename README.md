@@ -45,7 +45,7 @@ It is built for penetration testers and security researchers who need to spot th
 - **Wrap Lines:** Wrap long lines, or turn it off to scroll left and right
 - **Sync Views:** Scroll both sides together, or turn it off to scroll each side on its own
 - **Selectable Text:** Select and copy text from either side
-- **Line Counts:** Added, deleted, modified, and unchanged line totals
+- **Change Counts:** Added, deleted, modified, and unchanged totals in the unit of the comparison (words, bytes, or lines)
 </details>
 
 <details>
@@ -115,7 +115,7 @@ It is built for penetration testers and security researchers who need to spot th
 5. **Analyze Results:**
    - Review the color-coded differences in the comparison window
    - Use "Wrap lines" and "Sync Views" to choose how the two sides scroll
-   - Check the line counts at the bottom
+   - Check the change counts at the bottom
 
 ## Documentation
 

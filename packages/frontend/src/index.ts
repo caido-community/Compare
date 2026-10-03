@@ -3,12 +3,13 @@ import PrimeVue from "primevue/config";
 import { createApp } from "vue";
 
 import { registerCommands } from "./commands";
+import { PLUGIN_ICON, PLUGIN_NAME } from "./presentation/plugin";
 import { buildServices, type Services } from "./services";
 import "./styles/index.css";
-import type { FrontendSDK } from "./types";
+import { type FrontendSDK } from "./types";
 import App from "./views/App.vue";
 
-import { PLUGIN_ICON, PLUGIN_NAME } from "@/core/plugin";
+const PAGE_PATH = `/${__PLUGIN_ID__}`;
 
 const mountPage = (sdk: FrontendSDK, services: Services) => {
   const app = createApp(App, { services });
@@ -19,10 +20,8 @@ const mountPage = (sdk: FrontendSDK, services: Services) => {
   root.id = `plugin--${__PLUGIN_ID__}`;
   app.mount(root);
 
-  sdk.navigation.addPage(`/${__PLUGIN_ID__}`, { body: root });
-  sdk.sidebar.registerItem(PLUGIN_NAME, `/${__PLUGIN_ID__}`, {
-    icon: PLUGIN_ICON,
-  });
+  sdk.navigation.addPage(PAGE_PATH, { body: root });
+  sdk.sidebar.registerItem(PLUGIN_NAME, PAGE_PATH, { icon: PLUGIN_ICON });
 };
 
 export const init = (sdk: FrontendSDK) => {

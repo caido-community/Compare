@@ -1,8 +1,12 @@
-import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue";
+import { type CompareItem } from "shared";
+import { computed, onUnmounted, ref, shallowRef } from "vue";
 
 import { type DiffView } from "@/components/compare/DiffDialog";
-import { usePanel } from "@/components/compare/ItemPanel";
-import { type DiffMode, type DiffOptions } from "@/core/diff";
+import {
+  DEFAULT_DIFF_OPTIONS,
+  type DiffMode,
+  type DiffOptions,
+} from "@/core/diff";
 import { type Services } from "@/services";
 
 type CompareState =
@@ -13,12 +17,9 @@ type CompareState =
 const IDLE: CompareState = { kind: "Idle" };
 
 export const useForm = (services: Services) => {
-  const original = usePanel("original", services);
-  const modified = usePanel("modified", services);
-  const diffOptions = ref<DiffOptions>({
-    ignoreWhitespace: false,
-    ignoreCase: false,
-  });
+  const originalSelection = ref<CompareItem[]>([]);
+  const modifiedSelection = ref<CompareItem[]>([]);
+  const diffOptions = ref<DiffOptions>({ ...DEFAULT_DIFF_OPTIONS });
   const state = shallowRef<CompareState>(IDLE);
 
   const isComparing = computed(() => state.value.kind === "Running");
@@ -26,8 +27,8 @@ export const useForm = (services: Services) => {
   const canCompare = computed(
     () =>
       !isComparing.value &&
-      original.selected.value.length === 1 &&
-      modified.selected.value.length === 1,
+      originalSelection.value.length === 1 &&
+      modifiedSelection.value.length === 1,
   );
 
   const diffView = computed(() =>
@@ -35,13 +36,13 @@ export const useForm = (services: Services) => {
   );
 
   const compare = async (mode: DiffMode) => {
-    const left = original.selected.value[0];
-    const right = modified.selected.value[0];
-    if (left === undefined || right === undefined) return;
+    const original = originalSelection.value[0];
+    const modified = modifiedSelection.value[0];
+    if (original === undefined || modified === undefined) return;
 
     const run = services.runDiff({
-      original: left.data,
-      modified: right.data,
+      original: original.data,
+      modified: modified.data,
       mode,
       options: { ...diffOptions.value },
     });
@@ -63,7 +64,7 @@ export const useForm = (services: Services) => {
     }
     state.value = {
       kind: "Done",
-      view: { original: left, modified: right, result: outcome.value },
+      view: { original, modified, result: outcome.value },
     };
   };
 
@@ -71,29 +72,21 @@ export const useForm = (services: Services) => {
     if (state.value.kind === "Running") state.value.cancel();
   };
 
-  const reload = () => Promise.all([original.load(), modified.load()]);
+  const closeDiff = () => {
+    state.value = IDLE;
+  };
 
-  let stopListening: () => void = () => undefined;
-  onMounted(() => {
-    void reload();
-    stopListening = services.items.onItemsChanged(() => void reload());
-  });
-  onUnmounted(() => {
-    stopListening();
-    cancelCompare();
-  });
+  onUnmounted(cancelCompare);
 
   return {
-    original,
-    modified,
+    originalSelection,
+    modifiedSelection,
     diffOptions,
     diffView,
     isComparing,
     canCompare,
     compare,
     cancelCompare,
-    closeDiff: () => {
-      state.value = IDLE;
-    },
+    closeDiff,
   };
 };

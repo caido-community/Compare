@@ -8,9 +8,10 @@ import {
   type DiffResult,
   type Row,
   type RowKind,
+  type Sides,
 } from "./types";
 
-export { DIFF_MODES, ROW_KINDS } from "./types";
+export { DEFAULT_DIFF_OPTIONS, DIFF_MODES, ROW_KINDS } from "./types";
 
 export type {
   DiffInput,
@@ -21,8 +22,6 @@ export type {
   RowKind,
   Segment,
 } from "./types";
-
-type Lines = { original: string[]; modified: string[] };
 
 const DEFAULT_BUDGETS: DiffBudgets = { alignmentMs: 10_000, highlightMs: 3000 };
 
@@ -36,7 +35,7 @@ const buildCell = (
     : { lineNumber: index + 1, segments: [{ text: lines[index] ?? "", kind }] };
 
 const highlightRow = (
-  lines: Lines,
+  lines: Sides<string[]>,
   originalIndex: number,
   modifiedIndex: number,
   highlighter: Highlighter,
@@ -55,7 +54,7 @@ const highlightRow = (
 const buildRow = (
   block: LineBlock,
   offset: number,
-  lines: Lines,
+  lines: Sides<string[]>,
   highlighter: Highlighter,
 ): Row => {
   const originalIndex = block.original[offset];
@@ -80,7 +79,7 @@ const buildRow = (
 
 const buildRows = (
   block: LineBlock,
-  lines: Lines,
+  lines: Sides<string[]>,
   highlighter: Highlighter,
 ): Row[] => {
   const count = Math.max(block.original.length, block.modified.length);
@@ -97,12 +96,7 @@ export const compareTexts = (
     original: splitLines(input.original),
     modified: splitLines(input.modified),
   };
-  const alignment = alignLines(
-    lines.original,
-    lines.modified,
-    input.options,
-    budgets.alignmentMs,
-  );
+  const alignment = alignLines(lines, input.options, budgets.alignmentMs);
   const highlighter = buildHighlighter(input.mode, budgets.highlightMs);
   const rows = alignment.blocks.flatMap((block) =>
     buildRows(block, lines, highlighter),
