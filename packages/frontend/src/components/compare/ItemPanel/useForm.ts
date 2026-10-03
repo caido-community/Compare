@@ -9,12 +9,6 @@ type ContextMenuHandle = { show: (event: Event) => void };
 
 type RowMenuEvent = { data: CompareItem; originalEvent: Event };
 
-export const getPreview = (item: CompareItem): string =>
-  item.data.split("\n", 1)[0] ?? "";
-
-export const formatTime = (item: CompareItem): string =>
-  new Date(item.createdAt).toLocaleTimeString();
-
 export const useForm = (panel: PanelForm) => {
   const menu = useTemplateRef<ContextMenuHandle>("menu");
   const fileInput = useTemplateRef<HTMLInputElement>("fileInput");

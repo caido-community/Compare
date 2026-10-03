@@ -4,9 +4,14 @@ import Column from "primevue/column";
 import ContextMenu from "primevue/contextmenu";
 import DataTable from "primevue/datatable";
 
-import { formatTime, getPreview, useForm } from "./useForm";
+import { useForm } from "./useForm";
 import { type PanelForm } from "./usePanel";
 
+import {
+  formatLength,
+  formatTime,
+  getPreview,
+} from "@/components/common/itemFormat";
 import { ItemKindTag } from "@/components/common/ItemKindTag";
 import { PANEL_ACTION_LABELS } from "@/core/panels";
 
@@ -85,7 +90,7 @@ const form = useForm(panel);
         <Column header="Length" header-style="width: 6rem">
           <template #body="{ data }">
             <span class="font-mono text-xs">
-              {{ data.data.length.toLocaleString() }}
+              {{ formatLength(data) }}
             </span>
           </template>
         </Column>

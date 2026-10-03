@@ -4,6 +4,7 @@ import Dialog from "primevue/dialog";
 
 import { type DiffView, useForm } from "./useForm";
 
+import { formatLength } from "@/components/common/itemFormat";
 import { PANEL_TITLES } from "@/core/panels";
 import { PLUGIN_ICON } from "@/core/plugin";
 
@@ -22,7 +23,6 @@ const form = useForm(() => view);
     modal
     :draggable="false"
     :style="{ width: '90vw', maxWidth: '1400px', minWidth: '800px' }"
-    :pt="{ root: { class: 'max-h-[90vh] bg-surface-900' } }"
     @update:visible="emit('close')"
   >
     <template #header>
@@ -34,7 +34,7 @@ const form = useForm(() => view);
       </div>
     </template>
 
-    <div v-if="view" class="flex flex-col gap-3 px-4">
+    <div v-if="view" class="flex flex-col gap-3">
       <div
         v-for="notice in form.notices.value"
         :key="notice"
@@ -51,16 +51,20 @@ const form = useForm(() => view);
           class="border border-surface-700 rounded-lg overflow-hidden"
         >
           <div
-            class="flex flex-wrap items-center gap-2 bg-surface-800 px-3 py-2 border-b border-surface-700 text-sm"
+            class="flex items-center gap-2 bg-surface-800 px-3 py-2 border-b border-surface-700 text-sm"
           >
-            <span class="font-medium">
-              {{ PANEL_TITLES[panel] }} (ID: {{ view[panel].id }})
-            </span>
-            <span class="px-2 py-0.5 rounded-sm bg-surface-600 text-xs">
-              Length: {{ view[panel].data.length }}
+            <span class="shrink-0 font-semibold">{{
+              PANEL_TITLES[panel]
+            }}</span>
+            <span class="shrink-0 text-surface-400">#{{ view[panel].id }}</span>
+            <span
+              class="shrink-0 rounded-sm bg-surface-700 px-2 py-0.5 font-mono text-xs"
+            >
+              {{ formatLength(view[panel]) }}
             </span>
             <span
-              class="px-2 py-0.5 rounded-sm bg-surface-600 text-xs truncate"
+              class="min-w-0 truncate text-xs text-surface-400"
+              :title="view[panel].source"
             >
               {{ view[panel].source }}
             </span>
