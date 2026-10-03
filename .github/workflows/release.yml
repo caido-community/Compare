@@ -19,16 +19,13 @@ jobs:
           fi
 
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
 
       - name: Install mise
-        uses: jdx/mise-action@v2
-
-      - name: Install dependencies
-        run: pnpm install
+        uses: jdx/mise-action@v4.2.3
 
       - name: Build package
-        run: pnpm build
+        run: mise run build
 
       - name: Sign package
         working-directory: dist
@@ -49,10 +46,11 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Create release
-        uses: caido/action-release@v1
+        uses: caido/action-release@v1.20.0
         with:
           tag: ${{ steps.meta.outputs.version }}
           commit: ${{ github.sha }}
           body: 'Release ${{ steps.meta.outputs.version }}'
+          generateReleaseNotes: true
           artifacts: 'dist/plugin_package.zip,dist/plugin_package.zip.sig'
           immutableCreate: true

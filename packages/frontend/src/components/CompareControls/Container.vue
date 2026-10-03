@@ -1,103 +1,59 @@
 <script setup lang="ts">
 import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
-import { computed } from "vue";
 
-import type { CompareOptions, PanelState } from "@/types";
+import { LabeledCheckbox } from "@/components/LabeledCheckbox";
+import {
+  DIFF_MODE_DETAILS,
+  DIFF_OPTION_LABELS,
+  PRIMARY_DIFF_MODE,
+} from "@/constants";
+import { DIFF_MODES, type DiffMode } from "@/utils/diff";
 
-type Props = {
-  panel1State: PanelState;
-  panel2State: PanelState;
-  comparisonInProgress: boolean;
-  compareOptions: CompareOptions;
-};
+defineOptions({ name: "CompareControls" });
 
-const props = defineProps<Props>();
-
-const emit = defineEmits<{
-  "update:compareOptions": [value: CompareOptions];
-  compareWords: [];
-  compareBytes: [];
-  compareLines: [];
+const { canCompare, isComparing } = defineProps<{
+  canCompare: boolean;
+  isComparing: boolean;
 }>();
 
-const canCompare = computed(() => {
-  return (
-    !props.comparisonInProgress &&
-    props.panel1State.items.length > 0 &&
-    props.panel2State.items.length > 0 &&
-    props.panel1State.selectedItems.length === 1 &&
-    props.panel2State.selectedItems.length === 1
-  );
+const ignoreWhitespace = defineModel<boolean>("ignoreWhitespace", {
+  required: true,
 });
+const ignoreCase = defineModel<boolean>("ignoreCase", { required: true });
 
-const ignoreWhitespace = computed({
-  get: () => props.compareOptions.ignoreWhitespace === true,
-  set: (v: boolean) =>
-    emit("update:compareOptions", {
-      ...props.compareOptions,
-      ignoreWhitespace: v,
-    }),
-});
-
-const ignoreCase = computed({
-  get: () => props.compareOptions.ignoreCase === true,
-  set: (v: boolean) =>
-    emit("update:compareOptions", {
-      ...props.compareOptions,
-      ignoreCase: v,
-    }),
-});
-
-const handleCompareWords = () => emit("compareWords");
-const handleCompareBytes = () => emit("compareBytes");
-const handleCompareLines = () => emit("compareLines");
+const emit = defineEmits<{ compare: [mode: DiffMode]; cancel: [] }>();
 </script>
 
 <template>
-  <div class="py-3">
-    <div class="flex flex-wrap items-center justify-center gap-4">
+  <div class="flex flex-wrap items-center justify-center gap-4 py-3">
+    <Button
+      v-for="mode in DIFF_MODES"
+      :key="mode"
+      :label="DIFF_MODE_DETAILS[mode].buttonLabel"
+      :icon="DIFF_MODE_DETAILS[mode].icon"
+      :severity="mode === PRIMARY_DIFF_MODE ? undefined : 'secondary'"
+      :disabled="!canCompare"
+      class="min-w-32"
+      @click="emit('compare', mode)"
+    />
+    <div v-if="isComparing" class="flex items-center gap-2 text-sm">
+      <i class="fas fa-circle-notch fa-spin" />
+      <span>Comparing</span>
       <Button
-        label="Compare Words"
-        icon="fas fa-spell-check"
-        :disabled="!canCompare"
-        class="min-w-32"
-        @click="handleCompareWords"
-      />
-      <Button
-        label="Compare Bytes"
-        icon="fas fa-code"
-        :disabled="!canCompare"
+        label="Cancel"
+        size="small"
         severity="secondary"
-        class="min-w-32"
-        @click="handleCompareBytes"
+        outlined
+        @click="emit('cancel')"
       />
-      <Button
-        label="Compare Lines"
-        icon="fas fa-align-left"
-        :disabled="!canCompare"
-        severity="secondary"
-        class="min-w-32"
-        @click="handleCompareLines"
-      />
-      <div class="flex items-center gap-2 text-sm">
-        <Checkbox
-          id="compare-ignore-whitespace"
-          v-model="ignoreWhitespace"
-          :binary="true"
-          :disabled="!canCompare"
-        />
-        <label for="compare-ignore-whitespace">Ignore whitespace</label>
-      </div>
-      <div class="flex items-center gap-2 text-sm">
-        <Checkbox
-          id="compare-ignore-case"
-          v-model="ignoreCase"
-          :binary="true"
-          :disabled="!canCompare"
-        />
-        <label for="compare-ignore-case">Ignore case</label>
-      </div>
     </div>
+    <LabeledCheckbox
+      v-model="ignoreWhitespace"
+      :label="DIFF_OPTION_LABELS.ignoreWhitespace"
+    />
+    <LabeledCheckbox
+      v-model="ignoreCase"
+      :label="DIFF_OPTION_LABELS.ignoreCase"
+    />
   </div>
 </template>

@@ -2,8 +2,8 @@ name: Validate
 
 on:
   push:
-    branches:
-      - 'main'
+    branches: ["main"]
+  pull_request:
   workflow_call:
 
 concurrency:
@@ -11,71 +11,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  typecheck:
-    name: 'Typecheck'
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
 
       - name: Install mise
-        uses: jdx/mise-action@v2
+        uses: jdx/mise-action@v4.2.3
 
-      - name: Install dependencies
-        run: pnpm install
+      - name: Run validation (typecheck, lint, knip, test)
+        run: mise run validate
 
-      - name: Run typechecker
-        run: pnpm typecheck
-
-  lint:
-    name: 'Lint'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install mise
-        uses: jdx/mise-action@v2
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Run linter
-        run: pnpm lint
-
-  knip:
-    name: 'Knip'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install mise
-        uses: jdx/mise-action@v2
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Run knip
-        run: pnpm knip
-
-  test:
-    name: 'Test'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install mise
-        uses: jdx/mise-action@v2
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Run tests
-        run: pnpm test
+      - name: Build plugin package
+        run: mise run build

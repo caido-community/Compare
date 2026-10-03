@@ -8,6 +8,8 @@ export const SDKPlugin: Plugin = (app, sdk: FrontendSDK) => {
   app.provide(KEY, sdk);
 };
 
-export const useSDK = () => {
-  return inject(KEY) as FrontendSDK;
+export const useSDK = (): FrontendSDK => {
+  const sdk = inject(KEY);
+  if (sdk === undefined) throw new Error("The Caido SDK was not provided.");
+  return sdk;
 };

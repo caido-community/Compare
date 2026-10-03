@@ -1,1 +1,1 @@
-export { default } from "./Container.vue";
+export { default as CompareControls } from "./Container.vue";

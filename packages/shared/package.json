@@ -3,13 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "pnpm exec tsc"
+    "typecheck": "tsc --noEmit"
   },
-  "devDependencies": {
-    "typescript": "5.5.4"
+  "dependencies": {
+    "@caido/sdk-shared": "0.2.2"
   }
 }

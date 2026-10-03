@@ -1,0 +1,73 @@
+// @vitest-environment happy-dom
+import { flushPromises, mount } from "@vue/test-utils";
+import PrimeVue from "primevue/config";
+import { afterEach, describe, expect, it } from "vitest";
+
+import DiffDialog from "./Container.vue";
+
+import { VIEW_OPTION_LABELS } from "@/constants";
+import { buildDiffResult, buildItem } from "@/tests/fixtures";
+import { type DiffView } from "@/types";
+
+const buildView = (original: string, modified: string): DiffView => ({
+  original: buildItem(1, original),
+  modified: buildItem(2, modified),
+  result: buildDiffResult(original, modified),
+});
+
+afterEach(() => {
+  document.body.innerHTML = "";
+});
+
+const mountDialog = async (view: DiffView) => {
+  const errors: string[] = [];
+  const wrapper = mount(DiffDialog, {
+    props: { view },
+    global: {
+      plugins: [[PrimeVue, { unstyled: true }]],
+      config: { errorHandler: (error) => errors.push(String(error)) },
+    },
+    attachTo: document.body,
+  });
+  await flushPromises();
+  return { wrapper, errors };
+};
+
+const manyLines = (count: number, marker: string) =>
+  Array.from({ length: count }, (_, index) => `${marker} line ${index}`).join(
+    "\n",
+  );
+
+describe("opening a comparison", () => {
+  it("renders the rows without an endless update loop", async () => {
+    const { errors } = await mountDialog(buildView("a\nb\nc", "a\nx\nc"));
+
+    expect(errors).toEqual([]);
+    expect(document.body.textContent).toContain("x");
+  });
+
+  it("renders only a window of rows for a large comparison", async () => {
+    const { errors } = await mountDialog(
+      buildView(manyLines(5000, "a"), manyLines(5000, "b")),
+    );
+
+    const rendered = document.body.querySelectorAll("[data-row]").length;
+    expect(errors).toEqual([]);
+    expect(rendered).toBeGreaterThan(0);
+    expect(rendered).toBeLessThan(5000);
+  });
+
+  it("switches line wrapping off without an update loop", async () => {
+    const { errors } = await mountDialog(buildView("a\nb", "a\nc"));
+    const wrapLabel = Array.from(document.body.querySelectorAll("label")).find(
+      (label) =>
+        (label.textContent ?? "").includes(VIEW_OPTION_LABELS.isWrapped),
+    );
+    const wrap = wrapLabel?.querySelector("input");
+
+    wrap?.click();
+    await flushPromises();
+
+    expect(errors).toEqual([]);
+  });
+});
