@@ -1,13 +1,19 @@
-import { type CompareItem, err, ok, type Result } from "shared";
+import {
+  type CompareItem,
+  err,
+  ITEM_KINDS,
+  MAX_ITEM_LENGTH,
+  MAX_ITEM_MEGABYTES,
+  MAX_REQUESTS_PER_ADD,
+  ok,
+  PANELS,
+  type Result,
+} from "shared";
 import { z } from "zod";
 
-const MAX_ITEM_LENGTH = 10 * 1024 * 1024;
+export const panelSchema = z.enum(PANELS);
 
-export const MAX_REQUESTS_PER_ADD = 25;
-
-export const panelSchema = z.enum(["original", "modified"]);
-
-export const kindSchema = z.enum(["request", "response", "file", "clipboard"]);
+export const kindSchema = z.enum(ITEM_KINDS);
 
 export const storedItemSchema: z.ZodType<CompareItem> = z.object({
   id: z.number().int().positive(),
@@ -24,7 +30,10 @@ export const addItemSchema = z.object({
   data: z
     .string()
     .min(1, "The item is empty.")
-    .max(MAX_ITEM_LENGTH, "Items larger than 10 MB are not supported."),
+    .max(
+      MAX_ITEM_LENGTH,
+      `Items larger than ${MAX_ITEM_MEGABYTES} MB are not supported.`,
+    ),
 });
 
 export const addRequestsSchema = z.object({

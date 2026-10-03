@@ -8,6 +8,8 @@ import "./styles/index.css";
 import type { FrontendSDK } from "./types";
 import App from "./views/App.vue";
 
+import { PLUGIN_ICON, PLUGIN_NAME } from "@/core/plugin";
+
 const mountPage = (sdk: FrontendSDK, services: Services) => {
   const app = createApp(App, { services });
   app.use(PrimeVue, { unstyled: true, pt: Classic });
@@ -18,8 +20,8 @@ const mountPage = (sdk: FrontendSDK, services: Services) => {
   app.mount(root);
 
   sdk.navigation.addPage(`/${__PLUGIN_ID__}`, { body: root });
-  sdk.sidebar.registerItem("Compare", `/${__PLUGIN_ID__}`, {
-    icon: "fas fa-columns",
+  sdk.sidebar.registerItem(PLUGIN_NAME, `/${__PLUGIN_ID__}`, {
+    icon: PLUGIN_ICON,
   });
 };
 

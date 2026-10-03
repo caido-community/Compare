@@ -1,8 +1,16 @@
-export type Panel = "original" | "modified";
+export const PANELS = ["original", "modified"] as const;
 
-export const PANELS: ReadonlyArray<Panel> = ["original", "modified"];
+export type Panel = (typeof PANELS)[number];
 
-export type ItemKind = "request" | "response" | "file" | "clipboard";
+export const ITEM_KINDS = ["request", "response", "file", "clipboard"] as const;
+
+export type ItemKind = (typeof ITEM_KINDS)[number];
+
+export const MAX_ITEM_MEGABYTES = 10;
+
+export const MAX_ITEM_LENGTH = MAX_ITEM_MEGABYTES * 1024 * 1024;
+
+export const MAX_REQUESTS_PER_ADD = 25;
 
 export type CompareItem = {
   id: number;

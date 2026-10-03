@@ -6,7 +6,8 @@ import {
   PANELS,
 } from "shared";
 
-import { PANEL_TITLES } from "@/core/panels";
+import { getSendLabel, PANEL_TITLES } from "@/core/panels";
+import { PLUGIN_ICON } from "@/core/plugin";
 import { type Services } from "@/services";
 import { type ItemService } from "@/services/items";
 import { type FrontendSDK } from "@/types";
@@ -89,7 +90,7 @@ const registerPanelCommand = (
   const title = PANEL_TITLES[panel];
 
   sdk.commands.register(id, {
-    name: `Send to ${title}`,
+    name: getSendLabel(panel),
     run: async (context) => {
       const sent = await sendToBackend(
         services.items,
@@ -110,7 +111,7 @@ const registerPanelCommand = (
     sdk.menu.registerItem({
       type,
       commandId: id,
-      leadingIcon: "fas fa-columns",
+      leadingIcon: PLUGIN_ICON,
     });
   }
 };

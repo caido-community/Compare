@@ -27,7 +27,9 @@ const form = useForm(services);
       v-model:ignore-whitespace="form.diffOptions.value.ignoreWhitespace"
       v-model:ignore-case="form.diffOptions.value.ignoreCase"
       :can-compare="form.canCompare.value"
+      :is-comparing="form.isComparing.value"
       @compare="form.compare"
+      @cancel="form.cancelCompare"
     />
     <DiffDialog :view="form.diffView.value" @close="form.closeDiff" />
   </div>

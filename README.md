@@ -1,5 +1,5 @@
 <h1>Caido Compare</h1>
-<strong>A professional data comparison plugin for Caido that provides side-by-side comparison with visual difference highlighting</strong>
+<strong>Side-by-side comparison of HTTP requests, responses, and files in Caido, with every difference highlighted</strong>
 
 
 ---
@@ -10,6 +10,7 @@
 
 - [Overview](#overview)
 - [Features](#features)
+- [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Documentation](#documentation)
@@ -19,79 +20,71 @@
 
 ## Overview
 
-Compare is a powerful Caido plugin designed for security professionals who need precise data comparison capabilities. Whether you're analyzing HTTP requests/responses, comparing configuration files, or examining code differences, Compare provides professional-grade comparison tools with visual difference highlighting - similar to industry-standard comparison tools.
+Compare puts two pieces of data next to each other and shows exactly what changed between them. Send requests and responses from Caido, paste text, or load a file, then compare them by words, bytes, or lines.
 
-Built specifically for penetration testers and security researchers, Compare integrates seamlessly with Caido's workflow to enhance your security testing capabilities.
+It is built for penetration testers and security researchers who need to spot the difference between two responses, two requests, or two versions of a file quickly.
 
 ## Features
 
 <details>
-<summary><b>Professional Comparison Engine</b></summary>
+<summary><b>Comparison Engine</b></summary>
 <br>
 
-- **Word-Level Comparison:** Intelligent word-boundary detection for text content analysis
-- **Byte-Level Comparison:** Character-by-character analysis for precise difference detection
-- **Line-Level Comparison:** Line-by-line comparison ideal for structured content
-- **Visual Highlighting:** Color-coded differences with full-width backgrounds (Added, Deleted, Modified, Unchanged)
-- **Side-by-Side View:** Professional layout with synchronized scrolling option
-- **Comparison Options:** Ignore whitespace and ignore case for flexible comparison
+- **Word-Level Comparison:** Highlights the words that changed inside each changed line
+- **Byte-Level Comparison:** Highlights the exact characters that changed
+- **Line-Level Comparison:** Marks whole lines as added, deleted, or modified
+- **Aligned Side-by-Side View:** Lines line up across both sides, with a blank filler where a line was added or removed
+- **Comparison Options:** Ignore whitespace and ignore case, while the result still shows your original text
+- **Large Inputs:** Comparisons run in the background with a Cancel button, so Caido stays responsive even on very large responses
 </details>
 
 <details>
-<summary><b>Multiple Data Input Methods</b></summary>
+<summary><b>Result View</b></summary>
 <br>
 
-- **Clipboard Integration:** Paste content directly from clipboard
-- **File Loading:** Support for various file formats up to 10MB
-- **HTTP History Integration:** Direct integration with Caido's HTTP history
-- **Context Menu Support:** Right-click to send requests/responses to Original or Modified
+- **Wrap Lines:** Wrap long lines, or turn it off to scroll left and right
+- **Sync Views:** Scroll both sides together, or turn it off to scroll each side on its own
+- **Selectable Text:** Select and copy text from either side
+- **Line Counts:** Added, deleted, modified, and unchanged line totals
 </details>
 
 <details>
-<summary><b>Advanced Panel Management</b></summary>
+<summary><b>Data Input</b></summary>
 <br>
 
-- **Dual-Panel Layout:** Independent Original and Modified panels for comparison
-- **Multi-Item Storage:** Store multiple items per panel with metadata
-- **Transfer Between Panels:** Right-click any item to transfer between Original and Modified
-- **Bulk Operations:** Select multiple items for removal or management
-- **Data Persistence:** Automatic project-based data storage
+- **Paste:** Add the clipboard text
+- **Load:** Add a text file of up to 10 MB
+- **Send from Caido:** Right-click a request, a response, or up to 25 rows in HTTP History and choose "Send to Original" or "Send to Modified"
 </details>
 
 <details>
-<summary><b>HTTP Integration Features</b></summary>
+<summary><b>Panel Management</b></summary>
 <br>
 
-- **Request Analysis:** Compare different HTTP requests for parameter analysis
-- **Response Comparison:** Analyze server response variations
-- **Bulk Processing:** Process up to 25 requests simultaneously
-- **Metadata Preservation:** Maintains request method, URL, headers information
+- **Two Panels:** Separate Original and Modified panels, each holding many items
+- **Move:** Right-click an item, or a selection, to move it to the other panel
+- **Remove and Clear:** Remove selected items or empty a panel
+- **Per-Project Storage:** Each Caido project keeps its own items. Items saved by older versions of Compare are copied into the first project you open after updating, and the original files are kept as a backup
+- **Item Tags:** Color-coded tags for clipboard, file, request, and response items
 </details>
 
-<details>
-<summary><b>Professional UI/UX</b></summary>
-<br>
+## Requirements
 
-- **Modern Interface:** Clean, intuitive design matching Caido's theme
-- **Type-Specific Badges:** Color-coded item types (clipboard, file, request, response)
-- **Responsive Layout:** Optimized for different screen sizes with adaptive modal sizing
-- **Detailed Statistics:** Comprehensive difference counts and analysis
-- **Professional Modal:** Dedicated comparison view with advanced controls and proper minimum dimensions
-</details>
+- Caido 0.57 or later
 
 ## Installation
 
 ### Via Caido's Plugin Store (Recommended)
 
 1. Open Caido
-2. Navigate to **Settings > Plugins** 
+2. Navigate to **Settings > Plugins**
 3. Click the **Plugin Store** tab
 4. Search for "Compare"
 5. Click **Install**
 
 ### Manual Installation
 
-1. Download the latest `plugin_package.zip` from the [Releases](https://github.com/amrelsagaei/compare/releases) page
+1. Download the latest `plugin_package.zip` from the [Releases](https://github.com/caido-community/Compare/releases) page
 2. Open Caido
 3. Navigate to **Settings > Plugins**
 4. Click **Install Package** and select the downloaded ZIP file
@@ -102,47 +95,41 @@ Built specifically for penetration testers and security researchers, Compare int
 
 1. **Add Data to Panels:**
    - Use "Paste" to add clipboard content
-   - Use "Load" to select files from your system
-   - Right-click requests in HTTP History → "Compare: Send to Original" or "Send to Modified"
+   - Use "Load" to select a file from your system
+   - Right-click a request, a response, or rows in HTTP History and choose "Send to Original" or "Send to Modified"
 
 2. **Organize Data:**
-   - Right-click any item to transfer between Original and Modified panels
-   - Use "Remove" to delete selected items or "Clear" to empty panels
+   - Right-click any item and choose "Move" to send it to the other panel
+   - Use "Remove" to delete selected items or "Clear" to empty a panel
 
 3. **Select Items:**
-   - Click one item in Original panel
-   - Click one item in Modified panel
-   - Compare buttons will be enabled
+   - Click one item in the Original panel
+   - Click one item in the Modified panel
+   - The compare buttons become available
 
 4. **Compare:**
-   - Click "Compare Words" for text analysis
-   - Click "Compare Bytes" for precise character analysis
+   - Click "Compare Words" for text
+   - Click "Compare Bytes" for character-by-character changes
+   - Click "Compare Lines" for line-by-line changes
 
 5. **Analyze Results:**
-   - Review color-coded differences in the comparison modal
-   - Use "Sync Views" for synchronized scrolling
-   - Check statistics for detailed difference counts
-
+   - Review the color-coded differences in the comparison window
+   - Use "Wrap lines" and "Sync Views" to choose how the two sides scroll
+   - Check the line counts at the bottom
 
 ## Documentation
 
-Complete documentation is available within the plugin:
-- Click the **"Docs"** button in the top-right corner
-- Access comprehensive guides and usage examples
-- View quick start tutorials and best practices
-- Find troubleshooting tips and advanced features
-
+Full documentation is available inside the plugin. Open Compare and click the **Docs** tab in the top bar for a quick start, input methods, comparison types, and panel management.
 
 ## Feedback & Issues
 
-If you encounter any issues or have suggestions for improvements, please:
-- Report bugs and feature requests on our [GitHub repository](https://github.com/amrelsagaei/compare/issues)
+If you run into a problem or have an idea for an improvement:
+- Report bugs and request features on the [GitHub repository](https://github.com/caido-community/Compare/issues)
 - Share your security testing workflows and use cases
-- Contribute to the growing knowledge base
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 

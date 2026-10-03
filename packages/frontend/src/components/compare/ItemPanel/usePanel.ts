@@ -25,7 +25,10 @@ export type PanelForm = {
   moveToOtherPanel: (items: CompareItem[]) => Promise<void>;
 };
 
-export const usePanel = (panel: Panel, services: Services): PanelForm => {
+export const usePanel = (
+  panel: Panel,
+  services: Pick<Services, "items" | "notifications">,
+): PanelForm => {
   const title = PANEL_TITLES[panel];
   const items = ref<CompareItem[]>([]);
   const selected = ref<CompareItem[]>([]);

@@ -3,7 +3,7 @@ import { computed, ref, useTemplateRef } from "vue";
 
 import { type PanelForm } from "./usePanel";
 
-import { PANEL_TITLES } from "@/core/panels";
+import { PANEL_ACTION_LABELS, PANEL_TITLES } from "@/core/panels";
 
 type ContextMenuHandle = { show: (event: Event) => void };
 
@@ -26,7 +26,7 @@ export const useForm = (panel: PanelForm) => {
     const noun = count === 1 ? "item" : "items";
     return [
       {
-        label: `Move ${count} ${noun} to ${target}`,
+        label: `${PANEL_ACTION_LABELS.move} ${count} ${noun} to ${target}`,
         icon: "fas fa-exchange-alt",
         command: () => void panel.moveToOtherPanel(menuTargets.value),
       },

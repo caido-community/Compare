@@ -6,6 +6,7 @@ import { useForm } from "./useForm";
 
 import { ComparePage } from "@/components/compare/ComparePage";
 import { DocsPage } from "@/components/docs/DocsPage";
+import { PLUGIN_NAME } from "@/core/plugin";
 import { type Services } from "@/services";
 
 defineOptions({ name: "App" });
@@ -20,7 +21,7 @@ const form = useForm();
     <MenuBar breakpoint="320px" class="h-12 gap-2 shrink-0">
       <template #start>
         <div class="flex items-center gap-2">
-          <div class="px-2 font-bold text-surface-100">Compare</div>
+          <div class="px-2 font-bold text-surface-100">{{ PLUGIN_NAME }}</div>
           <Button
             v-for="item in form.pages"
             :key="item"

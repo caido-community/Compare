@@ -5,21 +5,14 @@ import { describe, expect, it } from "vitest";
 import { usePanel } from "./usePanel";
 
 import { type ItemService } from "@/services/items";
+import { buildItem } from "@/tests/fixtures";
 import { mountComposable } from "@/tests/mountComposable";
-
-const item = (id: number): CompareItem => ({
-  id,
-  kind: "clipboard",
-  source: "clipboard",
-  data: `item ${id}`,
-  createdAt: "2026-10-03T00:00:00.000Z",
-});
 
 const buildServiceDouble = (stored: CompareItem[], failWith?: string) => {
   const calls: string[] = [];
   const service: ItemService = {
     listItems: () => Promise.resolve(ok(stored)),
-    addItem: () => Promise.resolve(ok(item(99))),
+    addItem: () => Promise.resolve(ok(buildItem(99))),
     addRequests: () => Promise.resolve(ok([])),
     removeItems: (selection) => {
       calls.push(`remove ${selection.ids.join(",")}`);
@@ -50,9 +43,9 @@ const mountPanel = (service: ItemService) => {
 
 describe("loading a panel", () => {
   it("keeps only the selected items that still exist", async () => {
-    const { service } = buildServiceDouble([item(1), item(2)]);
+    const { service } = buildServiceDouble([buildItem(1), buildItem(2)]);
     const { panel } = await mountPanel(service);
-    panel.select([item(1), item(3)]);
+    panel.select([buildItem(1), buildItem(3)]);
 
     await panel.load();
 
@@ -63,9 +56,9 @@ describe("loading a panel", () => {
 
 describe("removing and moving", () => {
   it("removes the selected items", async () => {
-    const { service, calls } = buildServiceDouble([item(1), item(2)]);
+    const { service, calls } = buildServiceDouble([buildItem(1), buildItem(2)]);
     const { panel } = await mountPanel(service);
-    panel.select([item(1), item(2)]);
+    panel.select([buildItem(1), buildItem(2)]);
 
     await panel.removeSelected();
 
@@ -73,9 +66,9 @@ describe("removing and moving", () => {
   });
 
   it("reports why a removal failed", async () => {
-    const { service } = buildServiceDouble([item(1)], "disk full");
+    const { service } = buildServiceDouble([buildItem(1)], "disk full");
     const { panel, errors } = await mountPanel(service);
-    panel.select([item(1)]);
+    panel.select([buildItem(1)]);
 
     await panel.removeSelected();
 
@@ -83,10 +76,10 @@ describe("removing and moving", () => {
   });
 
   it("moves exactly the items it is given", async () => {
-    const { service, calls } = buildServiceDouble([item(1), item(2)]);
+    const { service, calls } = buildServiceDouble([buildItem(1), buildItem(2)]);
     const { panel } = await mountPanel(service);
 
-    await panel.moveToOtherPanel([item(2)]);
+    await panel.moveToOtherPanel([buildItem(2)]);
 
     expect(calls).toEqual(["move 2"]);
   });

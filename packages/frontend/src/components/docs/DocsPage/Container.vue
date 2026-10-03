@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import Card from "primevue/card";
+import { ITEM_KINDS, MAX_ITEM_MEGABYTES, MAX_REQUESTS_PER_ADD } from "shared";
 
 import { useForm } from "./useForm";
 
+import {
+  CHANGE_DETAILS,
+  DIFF_MODE_DETAILS,
+  DIFF_OPTION_LABELS,
+} from "@/components/common/diffPresentation";
 import { ItemKindTag } from "@/components/common/ItemKindTag";
+import { getSendLabel, PANEL_ACTION_LABELS, PANEL_TITLES } from "@/core/panels";
+import { PLUGIN_NAME } from "@/core/plugin";
 
 defineOptions({ name: "DocsPage" });
 
@@ -14,7 +22,12 @@ const CARD_PT = {
   content: { class: "h-full flex flex-col" },
 };
 
-const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
+const SEND_LABELS = {
+  original: getSendLabel("original"),
+  modified: getSendLabel("modified"),
+};
+
+const LEGEND_KINDS = ["added", "deleted", "modified"] as const;
 </script>
 
 <template>
@@ -70,17 +83,17 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
               <div class="space-y-4">
                 <div class="border border-surface-700 rounded p-4">
                   <h3 class="text-lg font-semibold mb-3">
-                    1. Add Data to Original
+                    1. Add Data to {{ PANEL_TITLES.original }}
                   </h3>
                   <p class="text-surface-300 leading-relaxed">
                     Paste content, load a file, or right-click a request in HTTP
-                    History and select "Send to Original".
+                    History and select "{{ SEND_LABELS.original }}".
                   </p>
                 </div>
 
                 <div class="border border-surface-700 rounded p-4">
                   <h3 class="text-lg font-semibold mb-3">
-                    2. Add Data to Modified
+                    2. Add Data to {{ PANEL_TITLES.modified }}
                   </h3>
                   <p class="text-surface-300 leading-relaxed">
                     Add the second piece of content you want to compare using
@@ -99,9 +112,11 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
                 <div class="border border-surface-700 rounded p-4">
                   <h3 class="text-lg font-semibold mb-3">4. Compare</h3>
                   <p class="text-surface-300 leading-relaxed">
-                    Click "Compare Words" for text, "Compare Bytes" for
-                    character-by-character analysis, or "Compare Lines" for
-                    line-by-line changes.
+                    Click "{{ DIFF_MODE_DETAILS.words.buttonLabel }}" for text,
+                    "{{ DIFF_MODE_DETAILS.bytes.buttonLabel }}" for
+                    character-by-character analysis, or "{{
+                      DIFF_MODE_DETAILS.lines.buttonLabel
+                    }}" for line-by-line changes.
                   </p>
                 </div>
               </div>
@@ -129,16 +144,18 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
                     1. Paste from Clipboard
                   </h3>
                   <p class="text-surface-300 leading-relaxed">
-                    Copy any text to your clipboard and click the "Paste"
-                    button. The content will be added as a clipboard item.
+                    Copy any text to your clipboard and click the "{{
+                      PANEL_ACTION_LABELS.paste
+                    }}" button. The content will be added as a clipboard item.
                   </p>
                 </div>
 
                 <div>
                   <h3 class="text-lg font-semibold mb-3">2. Load from File</h3>
                   <p class="text-surface-300 leading-relaxed">
-                    Click "Load" to open a file picker. Select any text file (up
-                    to 10MB) to add it to the panel.
+                    Click "{{ PANEL_ACTION_LABELS.load }}" to open a file
+                    picker. Select any text file (up to
+                    {{ MAX_ITEM_MEGABYTES }} MB) to add it to the panel.
                   </p>
                 </div>
 
@@ -152,9 +169,18 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
                   <ol
                     class="list-decimal list-inside space-y-2 text-surface-300 ml-4"
                   >
-                    <li>Select "Send to Original" to add to the left panel</li>
-                    <li>Select "Send to Modified" to add to the right panel</li>
-                    <li>You can select multiple requests (up to 25)</li>
+                    <li>
+                      Select "{{ SEND_LABELS.original }}" to add to the left
+                      panel
+                    </li>
+                    <li>
+                      Select "{{ SEND_LABELS.modified }}" to add to the right
+                      panel
+                    </li>
+                    <li>
+                      You can select multiple requests (up to
+                      {{ MAX_REQUESTS_PER_ADD }})
+                    </li>
                   </ol>
                 </div>
               </div>
@@ -216,14 +242,15 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
                     Comparison Options
                   </h3>
                   <p class="text-surface-300 leading-relaxed mb-3">
-                    <strong>Ignore whitespace:</strong> Normalizes spaces and
-                    tabs within lines while preserving line breaks. Useful for
-                    comparing formatted text where indentation varies.
+                    <strong>{{ DIFF_OPTION_LABELS.ignoreWhitespace }}:</strong>
+                    Normalizes spaces and tabs within lines while preserving
+                    line breaks. Useful for comparing formatted text where
+                    indentation varies.
                   </p>
                   <p class="text-surface-300 leading-relaxed">
-                    <strong>Ignore case:</strong> Performs case-insensitive
-                    comparison. Perfect for comparing text where capitalization
-                    differences don't matter.
+                    <strong>{{ DIFF_OPTION_LABELS.ignoreCase }}:</strong>
+                    Performs case-insensitive comparison. Perfect for comparing
+                    text where capitalization differences don't matter.
                   </p>
                 </div>
               </div>
@@ -235,16 +262,11 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
                   <i class="fas fa-palette text-blue-400 mr-2"></i>
                   <strong>Color coding:</strong>
                   <span
-                    class="text-green-100 ml-2 bg-green-700/50 px-2 py-0.5 rounded-sm"
-                    >Green = Added</span
-                  >
-                  <span
-                    class="text-red-100 ml-2 bg-red-700/50 px-2 py-0.5 rounded-sm"
-                    >Red = Deleted</span
-                  >
-                  <span
-                    class="text-orange-100 ml-2 bg-orange-700/50 px-2 py-0.5 rounded-sm"
-                    >Orange = Modified</span
+                    v-for="kind in LEGEND_KINDS"
+                    :key="kind"
+                    class="ml-2 px-2 py-0.5 rounded-sm"
+                    :class="CHANGE_DETAILS[kind].chipClass"
+                    >{{ CHANGE_DETAILS[kind].label }}</span
                   >
                 </p>
                 <p class="text-surface-300 text-sm">
@@ -268,23 +290,32 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
 
               <div class="space-y-4">
                 <div class="border-l-4 border-blue-500 pl-4">
-                  <h4 class="font-semibold mb-1">Remove</h4>
+                  <h4 class="font-semibold mb-1">
+                    {{ PANEL_ACTION_LABELS.remove }}
+                  </h4>
                   <p class="text-surface-300 text-sm">
-                    Select items and click "Remove" to delete them from the
-                    panel.
+                    Select items and click "{{ PANEL_ACTION_LABELS.remove }}" to
+                    delete them from the panel.
                   </p>
                 </div>
                 <div class="border-l-4 border-blue-500 pl-4">
-                  <h4 class="font-semibold mb-1">Clear</h4>
+                  <h4 class="font-semibold mb-1">
+                    {{ PANEL_ACTION_LABELS.clear }}
+                  </h4>
                   <p class="text-surface-300 text-sm">
-                    Click "Clear" to remove all items from a panel at once.
+                    Click "{{ PANEL_ACTION_LABELS.clear }}" to remove all items
+                    from a panel at once.
                   </p>
                 </div>
                 <div class="border-l-4 border-blue-500 pl-4">
-                  <h4 class="font-semibold mb-1">Move</h4>
+                  <h4 class="font-semibold mb-1">
+                    {{ PANEL_ACTION_LABELS.move }}
+                  </h4>
                   <p class="text-surface-300 text-sm">
-                    Right-click any item and select "Move" to send it to the
-                    other panel. Works with multiple selected items.
+                    Right-click any item and select "{{
+                      PANEL_ACTION_LABELS.move
+                    }}" to send it to the other panel. Works with multiple
+                    selected items.
                   </p>
                 </div>
                 <div class="border-l-4 border-blue-500 pl-4">
@@ -323,7 +354,11 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
                     class="list-decimal list-inside space-y-2 text-surface-300"
                   >
                     <li>Right-click any request in HTTP History</li>
-                    <li>Select "Send to Original" or "Send to Modified"</li>
+                    <li>
+                      Select "{{ SEND_LABELS.original }}" or "{{
+                        SEND_LABELS.modified
+                      }}"
+                    </li>
                     <li>Request data appears automatically in Compare</li>
                   </ol>
                 </div>
@@ -333,9 +368,14 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
                   <ol
                     class="list-decimal list-inside space-y-2 text-surface-300"
                   >
-                    <li>Select multiple requests (up to 25)</li>
                     <li>
-                      Right-click → "Send to Original" or "Send to Modified"
+                      Select multiple requests (up to
+                      {{ MAX_REQUESTS_PER_ADD }})
+                    </li>
+                    <li>
+                      Right-click → "{{ SEND_LABELS.original }}" or "{{
+                        SEND_LABELS.modified
+                      }}"
                     </li>
                     <li>All requests are processed automatically</li>
                   </ol>
@@ -353,7 +393,9 @@ const ITEM_KINDS = ["clipboard", "file", "request", "response"] as const;
 
               <div class="border border-surface-700 rounded p-4">
                 <div class="mb-4">
-                  <h3 class="text-xl font-bold text-white">Compare</h3>
+                  <h3 class="text-xl font-bold text-white">
+                    {{ PLUGIN_NAME }}
+                  </h3>
                   <p class="text-sm text-surface-400">
                     Version {{ form.version }}
                   </p>

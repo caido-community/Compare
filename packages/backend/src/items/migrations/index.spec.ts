@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { FIXED_TIME, TEST_ROOT } from "../../tests/fixtures";
 import { buildMemoryFileSystem } from "../../tests/memoryFileSystem";
 import { buildItemStore } from "../store";
 
 import { migrateStorage } from "./index";
-
-const ROOT = "/data";
-
-const NOW = "2026-10-03T00:00:00.000Z";
 
 const v1Item = (id: number, data: string) =>
   JSON.stringify({
@@ -23,14 +20,14 @@ const v1Item = (id: number, data: string) =>
 
 const setup = () => {
   const fileSystem = buildMemoryFileSystem();
-  const store = buildItemStore(fileSystem, ROOT);
+  const store = buildItemStore(fileSystem, TEST_ROOT);
   const migrate = (projectId: string) =>
     migrateStorage({
       fileSystem,
       store,
-      root: ROOT,
+      root: TEST_ROOT,
       projectId,
-      now: () => NOW,
+      now: () => FIXED_TIME,
     });
   const readIds = async (projectId: string, panel: "original" | "modified") => {
     const read = await store.readPanel(projectId, panel);
@@ -44,15 +41,15 @@ describe("migrateStorage", () => {
     it("copies panel1 into original and panel2 into modified", async () => {
       const { fileSystem, migrate, readIds } = setup();
       fileSystem.files.set(
-        `${ROOT}/panel1/1.json`,
+        `${TEST_ROOT}/panel1/1.json`,
         v1Item(1, "GET / HTTP/1.1"),
       );
       fileSystem.files.set(
-        `${ROOT}/panel1/3.json`,
+        `${TEST_ROOT}/panel1/3.json`,
         v1Item(3, "GET /a HTTP/1.1"),
       );
       fileSystem.files.set(
-        `${ROOT}/panel2/2.json`,
+        `${TEST_ROOT}/panel2/2.json`,
         v1Item(2, "GET /b HTTP/1.1"),
       );
 
@@ -69,7 +66,7 @@ describe("migrateStorage", () => {
     it("converts the v1 fields to the current item shape", async () => {
       const { fileSystem, store, migrate } = setup();
       fileSystem.files.set(
-        `${ROOT}/panel1/1.json`,
+        `${TEST_ROOT}/panel1/1.json`,
         v1Item(1, "GET / HTTP/1.1"),
       );
 
@@ -91,23 +88,26 @@ describe("migrateStorage", () => {
 
     it("keeps the v1 files as a backup", async () => {
       const { fileSystem, migrate } = setup();
-      fileSystem.files.set(`${ROOT}/panel1/1.json`, v1Item(1, "data"));
+      fileSystem.files.set(`${TEST_ROOT}/panel1/1.json`, v1Item(1, "data"));
 
       await migrate("project-a");
 
-      expect(fileSystem.files.has(`${ROOT}/panel1/1.json`)).toBe(true);
+      expect(fileSystem.files.has(`${TEST_ROOT}/panel1/1.json`)).toBe(true);
     });
 
     it("does not overwrite items an interrupted run already copied", async () => {
       const { fileSystem, store, migrate, readIds } = setup();
-      fileSystem.files.set(`${ROOT}/panel1/1.json`, v1Item(1, "from v1"));
-      fileSystem.files.set(`${ROOT}/panel1/2.json`, v1Item(2, "from v1 too"));
+      fileSystem.files.set(`${TEST_ROOT}/panel1/1.json`, v1Item(1, "from v1"));
+      fileSystem.files.set(
+        `${TEST_ROOT}/panel1/2.json`,
+        v1Item(2, "from v1 too"),
+      );
       await store.writeItem("project-a", "original", {
         id: 1,
         kind: "clipboard",
         source: "clipboard",
         data: "kept",
-        createdAt: NOW,
+        createdAt: FIXED_TIME,
       });
 
       const result = await migrate("project-a");
@@ -120,24 +120,24 @@ describe("migrateStorage", () => {
 
     it("skips a v1 file that is not valid JSON", async () => {
       const { fileSystem, migrate, readIds } = setup();
-      fileSystem.files.set(`${ROOT}/panel1/1.json`, v1Item(1, "good"));
-      fileSystem.files.set(`${ROOT}/panel1/2.json`, "{not json");
+      fileSystem.files.set(`${TEST_ROOT}/panel1/1.json`, v1Item(1, "good"));
+      fileSystem.files.set(`${TEST_ROOT}/panel1/2.json`, "{not json");
 
       await migrate("project-a");
 
       expect(await readIds("project-a", "original")).toEqual([1]);
-      expect(fileSystem.files.has(`${ROOT}/panel1/2.json`)).toBe(true);
+      expect(fileSystem.files.has(`${TEST_ROOT}/panel1/2.json`)).toBe(true);
     });
 
     it("stays at v1 and retries when a copy fails", async () => {
       const { fileSystem, migrate } = setup();
-      fileSystem.files.set(`${ROOT}/panel1/1.json`, v1Item(1, "data"));
-      fileSystem.failing.add(`${ROOT}/projects/project-a/original/1.json`);
+      fileSystem.files.set(`${TEST_ROOT}/panel1/1.json`, v1Item(1, "data"));
+      fileSystem.failing.add(`${TEST_ROOT}/projects/project-a/original/1.json`);
 
       const result = await migrate("project-a");
 
       expect(result.kind).toBe("Error");
-      expect(fileSystem.files.has(`${ROOT}/version.json`)).toBe(false);
+      expect(fileSystem.files.has(`${TEST_ROOT}/version.json`)).toBe(false);
     });
 
     it("upgrades a fresh install with no data", async () => {
@@ -149,7 +149,7 @@ describe("migrateStorage", () => {
         kind: "Ok",
         value: { from: 1, to: 2, copiedItems: 0 },
       });
-      expect(fileSystem.files.get(`${ROOT}/version.json`)).toContain(
+      expect(fileSystem.files.get(`${TEST_ROOT}/version.json`)).toContain(
         '"version": 2',
       );
     });
@@ -158,7 +158,7 @@ describe("migrateStorage", () => {
   describe("at the current version", () => {
     it("does nothing, so other projects start empty", async () => {
       const { fileSystem, migrate, readIds } = setup();
-      fileSystem.files.set(`${ROOT}/panel1/1.json`, v1Item(1, "data"));
+      fileSystem.files.set(`${TEST_ROOT}/panel1/1.json`, v1Item(1, "data"));
       await migrate("project-a");
 
       const result = await migrate("project-b");
@@ -174,7 +174,7 @@ describe("migrateStorage", () => {
   describe("from a newer version", () => {
     it("refuses to touch the data", async () => {
       const { fileSystem, migrate } = setup();
-      fileSystem.files.set(`${ROOT}/version.json`, '{ "version": 9 }');
+      fileSystem.files.set(`${TEST_ROOT}/version.json`, '{ "version": 9 }');
 
       const result = await migrate("project-a");
 

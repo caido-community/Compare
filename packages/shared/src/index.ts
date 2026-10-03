@@ -17,8 +17,12 @@ export {
   type AddRequestsInput,
   type CompareItem,
   getOtherPanel,
+  ITEM_KINDS,
   type ItemKind,
   type ItemSelection,
+  MAX_ITEM_LENGTH,
+  MAX_ITEM_MEGABYTES,
+  MAX_REQUESTS_PER_ADD,
   type Panel,
   PANELS,
 } from "./items";

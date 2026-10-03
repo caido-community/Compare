@@ -1,174 +1,242 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  compareTexts,
-  type DiffOptions,
-  normalizeText,
-  type Segment,
-  type SegmentKind,
-} from "./index";
+import { compareTexts, type DiffInput, type Row } from "./index";
 
-const PLAIN: DiffOptions = { ignoreWhitespace: false, ignoreCase: false };
+const PLAIN = { ignoreWhitespace: false, ignoreCase: false };
 
-const ofKind = (segments: Segment[], ...kinds: SegmentKind[]) =>
-  segments.filter((segment) => kinds.includes(segment.kind));
+const input = (
+  original: string,
+  modified: string,
+  overrides: Partial<DiffInput> = {},
+): DiffInput => ({
+  original,
+  modified,
+  mode: "words",
+  options: PLAIN,
+  ...overrides,
+});
 
-describe("normalizeText", () => {
-  it("leaves text unchanged without options", () => {
-    expect(normalizeText("Hello  World", PLAIN)).toBe("Hello  World");
+const rowAt = (rows: Row[], index: number): Row => {
+  const row = rows[index];
+  if (row === undefined) throw new Error(`row ${index} is missing`);
+  return row;
+};
+
+const readSide = (row: Row, side: "original" | "modified") =>
+  row[side]?.segments.map((segment) => segment.text).join("");
+
+const changedText = (row: Row, side: "original" | "modified") =>
+  row[side]?.segments
+    .filter((segment) => segment.kind !== "unchanged")
+    .map((segment) => segment.text)
+    .join("");
+
+describe("aligning lines", () => {
+  it("marks identical text as unchanged rows with line numbers", () => {
+    const { rows } = compareTexts(input("a\nb", "a\nb"));
+
+    expect(rows.map((row) => row.kind)).toEqual(["unchanged", "unchanged"]);
+    expect(rows[1]?.original?.lineNumber).toBe(2);
+    expect(rows[1]?.modified?.lineNumber).toBe(2);
   });
 
-  it("lowercases when ignoring case", () => {
-    expect(normalizeText("Hello", { ...PLAIN, ignoreCase: true })).toBe(
-      "hello",
-    );
+  it("adds a filler on the original side for an inserted line", () => {
+    const { rows } = compareTexts(input("a\nc", "a\nb\nc"));
+
+    expect(rows.map((row) => row.kind)).toEqual([
+      "unchanged",
+      "added",
+      "unchanged",
+    ]);
+    expect(rows[1]?.original).toBeUndefined();
+    expect(readSide(rowAt(rows, 1), "modified")).toBe("b");
+    expect(rows[2]?.original?.lineNumber).toBe(2);
+    expect(rows[2]?.modified?.lineNumber).toBe(3);
   });
 
-  it("trims and collapses whitespace on each line", () => {
-    const text = "  hello   world  \n  next  ";
-    expect(normalizeText(text, { ...PLAIN, ignoreWhitespace: true })).toBe(
-      "hello world\nnext",
-    );
+  it("adds a filler on the modified side for a removed line", () => {
+    const { rows } = compareTexts(input("a\nb\nc", "a\nc"));
+
+    expect(rows.map((row) => row.kind)).toEqual([
+      "unchanged",
+      "deleted",
+      "unchanged",
+    ]);
+    expect(rows[1]?.modified).toBeUndefined();
+  });
+
+  it("treats CRLF and LF line endings as equal", () => {
+    const { summary } = compareTexts(input("a\r\nb", "a\nb"));
+
+    expect(summary.unchanged).toBe(2);
   });
 });
 
-describe("comparing words", () => {
-  it("marks identical text as one unchanged segment per side", () => {
-    const result = compareTexts("hello world", "hello world", "words", PLAIN);
-
-    expect(result.original).toEqual([
-      { kind: "unchanged", content: "hello world" },
-    ]);
-    expect(result.modified).toEqual([
-      { kind: "unchanged", content: "hello world" },
-    ]);
-  });
-
-  it("marks an inserted word as added on the modified side", () => {
-    const result = compareTexts(
-      "hello world",
-      "hello new world",
-      "words",
-      PLAIN,
-    );
-
-    expect(ofKind(result.modified, "added")).toEqual([
-      { kind: "added", content: "new " },
-    ]);
-    expect(ofKind(result.original, "deleted", "modified")).toEqual([]);
-  });
-
-  it("marks reordered words as changed on both sides", () => {
-    const result = compareTexts("A B C", "C B A", "words", PLAIN);
-
-    expect(
-      ofKind(result.original, "deleted", "modified").length,
-    ).toBeGreaterThan(0);
-    expect(ofKind(result.modified, "added", "modified").length).toBeGreaterThan(
+describe("highlighting changed lines", () => {
+  it("marks the changed word in words mode", () => {
+    const row = rowAt(
+      compareTexts(input('{"role": "user"}', '{"role": "admin"}')).rows,
       0,
     );
+
+    expect(row.kind).toBe("modified");
+    expect(changedText(row, "original")).toBe("user");
+    expect(changedText(row, "modified")).toBe("admin");
   });
 
-  it("treats case differences as equal when ignoring case", () => {
-    const result = compareTexts("Hello", "HELLO", "words", {
-      ...PLAIN,
-      ignoreCase: true,
-    });
-
-    expect(ofKind(result.original, "unchanged")).toHaveLength(1);
-    expect(ofKind(result.modified, "added", "modified")).toEqual([]);
-  });
-
-  it("treats spacing differences as equal when ignoring whitespace", () => {
-    const result = compareTexts("hello  world", "hello world", "words", {
-      ...PLAIN,
-      ignoreWhitespace: true,
-    });
-
-    expect(result.original).toHaveLength(1);
-    expect(result.original[0]?.kind).toBe("unchanged");
-  });
-});
-
-describe("comparing lines", () => {
-  it("marks an inserted line as added", () => {
-    const result = compareTexts("a\nb\n", "a\nx\nb\n", "lines", PLAIN);
-
-    expect(ofKind(result.modified, "added")).toEqual([
-      { kind: "added", content: "x\n" },
-    ]);
-  });
-
-  it("marks a removed line as deleted", () => {
-    const result = compareTexts("a\nb\nc\n", "a\nc\n", "lines", PLAIN);
-
-    expect(ofKind(result.original, "deleted")).toEqual([
-      { kind: "deleted", content: "b\n" },
-    ]);
-  });
-
-  it("pairs a replaced line as modified on both sides", () => {
-    const result = compareTexts("a\nb\n", "a\nx\n", "lines", PLAIN);
-
-    expect(ofKind(result.original, "modified")).toEqual([
-      { kind: "modified", content: "b\n" },
-    ]);
-    expect(ofKind(result.modified, "modified")).toEqual([
-      { kind: "modified", content: "x\n" },
-    ]);
-  });
-
-  it("ignores indentation when ignoring whitespace", () => {
-    const result = compareTexts("  a  \n", "a\n", "lines", {
-      ...PLAIN,
-      ignoreWhitespace: true,
-    });
-
-    expect(result.original).toEqual([{ kind: "unchanged", content: "a\n" }]);
-  });
-});
-
-describe("comparing bytes", () => {
-  it("marks a single changed character as modified", () => {
-    const result = compareTexts("abc", "axc", "bytes", PLAIN);
-
-    expect(ofKind(result.original, "modified")).toEqual([
-      { kind: "modified", content: "b" },
-    ]);
-    expect(ofKind(result.modified, "modified")).toEqual([
-      { kind: "modified", content: "x" },
-    ]);
-  });
-
-  it("keeps the unchanged characters aligned on both sides", () => {
-    const result = compareTexts("aba", "aca", "bytes", PLAIN);
-
-    expect(ofKind(result.original, "unchanged")).toEqual(
-      ofKind(result.modified, "unchanged"),
+  it("marks the changed character in bytes mode", () => {
+    const row = rowAt(
+      compareTexts(input("abc", "axc", { mode: "bytes" })).rows,
+      0,
     );
+
+    expect(changedText(row, "original")).toBe("b");
+    expect(changedText(row, "modified")).toBe("x");
+  });
+
+  it("marks the whole line in lines mode", () => {
+    const row = rowAt(
+      compareTexts(input("abc", "axc", { mode: "lines" })).rows,
+      0,
+    );
+
+    expect(changedText(row, "original")).toBe("abc");
+    expect(changedText(row, "modified")).toBe("axc");
+  });
+
+  it("keeps every character of both lines", () => {
+    const row = rowAt(
+      compareTexts(input("one two three", "one 2 three")).rows,
+      0,
+    );
+
+    expect(readSide(row, "original")).toBe("one two three");
+    expect(readSide(row, "modified")).toBe("one 2 three");
+  });
+});
+
+describe("ignoring case and whitespace", () => {
+  it("treats case differences as unchanged but shows the original text", () => {
+    const { rows } = compareTexts(
+      input("Content-Type: JSON", "content-type: json", {
+        options: { ...PLAIN, ignoreCase: true },
+      }),
+    );
+
+    expect(rows[0]?.kind).toBe("unchanged");
+    expect(readSide(rowAt(rows, 0), "original")).toBe("Content-Type: JSON");
+    expect(readSide(rowAt(rows, 0), "modified")).toBe("content-type: json");
+  });
+
+  it("treats indentation differences as unchanged but keeps the indentation", () => {
+    const { rows } = compareTexts(
+      input("    a  b", "a b", {
+        options: { ...PLAIN, ignoreWhitespace: true },
+      }),
+    );
+
+    expect(rows[0]?.kind).toBe("unchanged");
+    expect(readSide(rowAt(rows, 0), "original")).toBe("    a  b");
+  });
+});
+
+describe("classifying changes inside a line", () => {
+  it("marks a replaced word as modified on both sides", () => {
+    const row = rowAt(compareTexts(input("role user", "role admin")).rows, 0);
+
+    expect(row.original?.segments.at(-1)).toEqual({
+      text: "user",
+      kind: "modified",
+    });
+    expect(row.modified?.segments.at(-1)).toEqual({
+      text: "admin",
+      kind: "modified",
+    });
+  });
+
+  it("marks an inserted word as added", () => {
+    const row = rowAt(compareTexts(input("a c", "a b c")).rows, 0);
+
+    expect(
+      row.modified?.segments.filter((part) => part.kind === "added"),
+    ).toEqual([{ text: "b ", kind: "added" }]);
   });
 });
 
 describe("the summary", () => {
-  it("counts segments in words mode", () => {
-    const { summary } = compareTexts("a b", "a x b", "words", PLAIN);
+  it("counts lines in lines mode", () => {
+    const { summary } = compareTexts(
+      input("a\nb\nc", "a\nx\nc\nd", { mode: "lines" }),
+    );
 
     expect(summary).toEqual({
       added: 1,
       deleted: 0,
-      modified: 0,
+      modified: 1,
       unchanged: 2,
     });
   });
 
-  it("counts characters in bytes mode", () => {
-    const { summary } = compareTexts("abc", "axc", "bytes", PLAIN);
+  it("counts words in words mode", () => {
+    const { summary } = compareTexts(
+      input('{"role": "user", "id": 1}', '{"role": "admin", "id": 1}'),
+    );
 
     expect(summary).toEqual({
       added: 0,
       deleted: 0,
       modified: 1,
-      unchanged: 2,
+      unchanged: 3,
     });
+  });
+
+  it("counts bytes in bytes mode", () => {
+    const { summary } = compareTexts(input("abcd", "axcde", { mode: "bytes" }));
+
+    expect(summary).toEqual({
+      added: 1,
+      deleted: 0,
+      modified: 1,
+      unchanged: 3,
+    });
+  });
+
+  it("counts multi-byte characters by their encoded size", () => {
+    const { summary } = compareTexts(input("é", "e", { mode: "bytes" }));
+
+    expect(summary.modified).toBe(2);
+  });
+
+  it("counts whole added lines in the unit of the mode", () => {
+    const { summary } = compareTexts(input("a", "a\nnew words here"));
+
+    expect(summary.added).toBe(3);
+  });
+});
+
+describe("staying responsive on hard inputs", () => {
+  const unrelatedLines = (seed: number) =>
+    Array.from({ length: 3000 }, (_, index) => `${seed}-${index * seed}`).join(
+      "\n",
+    );
+
+  it("pairs lines by position when alignment runs out of time", () => {
+    const result = compareTexts(input(unrelatedLines(3), unrelatedLines(7)), {
+      alignmentMs: 0,
+      highlightMs: 1000,
+    });
+
+    expect(result.isAlignmentComplete).toBe(false);
+    expect(result.rows).toHaveLength(3000);
+  });
+
+  it("marks lines as a whole when the highlight budget is spent", () => {
+    const result = compareTexts(input("abc", "axc", { mode: "bytes" }), {
+      alignmentMs: 1000,
+      highlightMs: 0,
+    });
+
+    expect(result.isHighlightingComplete).toBe(false);
+    expect(changedText(rowAt(result.rows, 0), "original")).toBe("abc");
   });
 });

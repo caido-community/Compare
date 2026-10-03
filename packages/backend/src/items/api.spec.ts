@@ -1,17 +1,13 @@
-import { err, ok, type Panel } from "shared";
+import { err, MAX_REQUESTS_PER_ADD, ok, type Panel } from "shared";
 import { describe, expect, it } from "vitest";
 
+import { FIXED_TIME, TEST_ROOT } from "../tests/fixtures";
 import { buildMemoryFileSystem } from "../tests/memoryFileSystem";
 
 import { buildItemsApi, type RequestReader } from "./api";
 import { migrateStorage } from "./migrations";
 import { buildProjectState } from "./project";
-import { MAX_REQUESTS_PER_ADD } from "./schema";
 import { buildItemStore } from "./store";
-
-const ROOT = "/data";
-
-const NOW = "2026-10-03T00:00:00.000Z";
 
 const REQUESTS: Record<string, { source: string; data: string }> = {
   "1": { source: "https://example.com/a", data: "GET /a HTTP/1.1" },
@@ -29,13 +25,19 @@ const readRequest: RequestReader = (requestId) => {
 
 const setup = async (options = { isProjectOpen: true }) => {
   const fileSystem = buildMemoryFileSystem();
-  const store = buildItemStore(fileSystem, ROOT);
+  const store = buildItemStore(fileSystem, TEST_ROOT);
   const changes = { count: 0 };
-  const now = () => NOW;
+  const now = () => FIXED_TIME;
   const project = buildProjectState({
     store,
     migrate: (id) =>
-      migrateStorage({ fileSystem, store, root: ROOT, projectId: id, now }),
+      migrateStorage({
+        fileSystem,
+        store,
+        root: TEST_ROOT,
+        projectId: id,
+        now,
+      }),
     notifyChange: () => {
       changes.count += 1;
     },
@@ -70,7 +72,7 @@ describe("adding items", () => {
         kind: "file",
         source: "notes.txt",
         data: "hello",
-        createdAt: NOW,
+        createdAt: FIXED_TIME,
       }),
     );
   });
@@ -172,14 +174,14 @@ describe("removing, moving, and clearing", () => {
     expect(await listIds("original")).toEqual([]);
     expect(await listIds("modified")).toEqual([1, 2, 3]);
     expect(
-      fileSystem.files.has(`${ROOT}/projects/project-a/original/1.json`),
+      fileSystem.files.has(`${TEST_ROOT}/projects/project-a/original/1.json`),
     ).toBe(false);
   });
 
   it("keeps an item in place when its move fails", async () => {
     const { api, addText, listIds, fileSystem } = await setup();
     await addText("original", "one");
-    fileSystem.failing.add(`${ROOT}/projects/project-a/modified/1.json`);
+    fileSystem.failing.add(`${TEST_ROOT}/projects/project-a/modified/1.json`);
 
     const moved = await api.moveItems({ panel: "original", ids: [1] });
 

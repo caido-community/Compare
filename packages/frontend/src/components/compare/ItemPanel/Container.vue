@@ -8,6 +8,7 @@ import { formatTime, getPreview, useForm } from "./useForm";
 import { type PanelForm } from "./usePanel";
 
 import { ItemKindTag } from "@/components/common/ItemKindTag";
+import { PANEL_ACTION_LABELS } from "@/core/panels";
 
 defineOptions({ name: "ItemPanel" });
 
@@ -26,21 +27,21 @@ const form = useForm(panel);
       <span class="font-semibold text-white">{{ panel.title }}</span>
       <div class="flex gap-2">
         <Button
-          label="Paste"
+          :label="PANEL_ACTION_LABELS.paste"
           icon="fas fa-paste"
           size="small"
           :disabled="panel.isBusy.value"
           @click="panel.pasteClipboard"
         />
         <Button
-          label="Load"
+          :label="PANEL_ACTION_LABELS.load"
           icon="fas fa-folder-open"
           size="small"
           :disabled="panel.isBusy.value"
           @click="form.chooseFile"
         />
         <Button
-          label="Remove"
+          :label="PANEL_ACTION_LABELS.remove"
           icon="fas fa-trash"
           severity="danger"
           size="small"
@@ -48,7 +49,7 @@ const form = useForm(panel);
           @click="panel.removeSelected"
         />
         <Button
-          label="Clear"
+          :label="PANEL_ACTION_LABELS.clear"
           icon="fas fa-times"
           severity="secondary"
           size="small"
